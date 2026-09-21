@@ -6,7 +6,7 @@ import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { uploadEditorImageAction } from "@/lib/actions/media-actions";
 
 /** data: URI -> Blob, so pasted/embedded base64 images can be uploaded like a normal file. */
@@ -45,20 +45,25 @@ function ToolbarButton({
 export default function RichTextEditor({
   name,
   initialContent,
+  onImageUploaded,
 }: {
   name: string;
   initialContent?: string;
+  /** Called with the Media id whenever a pasted/embedded image gets auto-uploaded. */
+  onImageUploaded?: (mediaId: string, url: string) => void;
 }) {
+  const [html, setHtml] = useState(initialContent || "");
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
       StarterKit,
       Underline,
       Link.configure({ openOnClick: false }),
-      Image,
+      Image.configure({ allowBase64: true }),
       Placeholder.configure({ placeholder: "यहाँ खबर लिखें..." }),
     ],
     content: initialContent || "",
+    onUpdate: ({ editor }) => setHtml(editor.getHTML()),
     editorProps: {
       attributes: {
         class: "prose prose-neutral max-w-none min-h-[300px] px-3 py-2 focus:outline-none",
@@ -74,6 +79,12 @@ export default function RichTextEditor({
   // pasting from Word/Google Docs) — replaces it with a real hosted URL so it survives
   // sanitization on save and doesn't bloat the article HTML with inline base64 blobs.
   const inFlight = useRef(new Set<string>());
+  const onImageUploadedRef = useRef(onImageUploaded);
+
+  useEffect(() => {
+    onImageUploadedRef.current = onImageUploaded;
+  }, [onImageUploaded]);
+
   useEffect(() => {
     if (!editor) return;
 
@@ -104,6 +115,7 @@ export default function RichTextEditor({
                 }
                 return true;
               });
+              onImageUploadedRef.current?.(result.id, result.url);
             }
           } catch {
             // Leave the data: URI in place on failure — sanitizer will drop it, but the
@@ -157,7 +169,7 @@ export default function RichTextEditor({
         <ToolbarButton title="क्षैतिज रेखा" onClick={() => editor.chain().focus().setHorizontalRule().run()}>―</ToolbarButton>
       </div>
       <EditorContent editor={editor} />
-      <input type="hidden" name={name} value={editor.getHTML()} readOnly />
+      <input type="hidden" name={name} value={html} readOnly />
     </div>
   );
 }

@@ -40,7 +40,7 @@ export default async function Header() {
               instanceId="header"
             />
             <span className="flex flex-col justify-center">
-              <span className="bg-gradient-to-r from-red-700 via-red-600 to-orange-600 bg-clip-text py-1 font-display text-3xl leading-[1.3] font-extrabold tracking-tight text-transparent md:text-4xl">
+              <span className="block bg-gradient-to-r from-red-700 via-red-600 to-orange-600 bg-clip-text py-1 font-display text-[2.5rem] leading-[1.25] font-extrabold tracking-tight text-transparent md:text-[3.25rem]">
                 विंध्यलीडर
               </span>
               <span className="hidden text-[10px] leading-normal tracking-[0.3em] text-neutral-400 md:inline-block">

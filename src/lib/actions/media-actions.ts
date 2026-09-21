@@ -71,7 +71,7 @@ export async function uploadMediaAction(formData: FormData) {
  */
 export async function uploadEditorImageAction(
   formData: FormData
-): Promise<{ url: string } | { error: string }> {
+): Promise<{ url: string; id: string } | { error: string }> {
   const session = await getSession();
   if (!hasRole(session, "REPORTER")) return { error: "अनधिकृत।" };
 
@@ -82,7 +82,7 @@ export async function uploadEditorImageAction(
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const media = await processAndStoreImage(buffer, session!.userId);
-  return { url: media.url };
+  return { url: media.url, id: media.id };
 }
 
 export async function deleteMediaAction(mediaId: string) {

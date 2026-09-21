@@ -49,6 +49,19 @@ function revalidateArticleSurfaces(categorySlug: string, slug: string) {
   revalidatePath("/sitemap.xml");
 }
 
+async function resolveFeaturedImageId(bodyHtml: string, submittedImageId: string) {
+  const firstImageUrl = bodyHtml.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i)?.[1];
+  if (firstImageUrl) {
+    const bodyMedia = await prisma.media.findFirst({
+      where: { url: firstImageUrl },
+      select: { id: true },
+    });
+    if (bodyMedia) return bodyMedia.id;
+  }
+
+  return submittedImageId || null;
+}
+
 async function syncArticleTags(articleId: string, tagsCsv: string) {
   const names = Array.from(
     new Set(
@@ -81,6 +94,10 @@ export async function createArticleAction(formData: FormData) {
   const categoryId = String(formData.get("categoryId") ?? "");
   const status = String(formData.get("status") ?? "DRAFT") as ArticleStatus;
   const bodyHtml = sanitizeArticleHtml(String(formData.get("bodyHtml") ?? ""));
+  const featuredImageId = await resolveFeaturedImageId(
+    bodyHtml,
+    String(formData.get("featuredImageId") ?? "")
+  );
   const requestedSlug = slugify(String(formData.get("slug") ?? "") || title || hindiTitle);
 
   if (!hindiTitle || !categoryId) {
@@ -102,7 +119,7 @@ export async function createArticleAction(formData: FormData) {
       categoryId,
       authorId: session.userId,
       location: String(formData.get("location") ?? "") || null,
-      featuredImageId: String(formData.get("featuredImageId") ?? "") || null,
+      featuredImageId,
       imageCaption: String(formData.get("imageCaption") ?? "") || null,
       status: finalStatus,
       publishedAt: finalStatus === "PUBLISHED" ? new Date() : null,
@@ -142,6 +159,10 @@ export async function updateArticleAction(articleId: string, formData: FormData)
   const categoryId = String(formData.get("categoryId") ?? "");
   const requestedStatus = String(formData.get("status") ?? existing.status) as ArticleStatus;
   const bodyHtml = sanitizeArticleHtml(String(formData.get("bodyHtml") ?? ""));
+  const featuredImageId = await resolveFeaturedImageId(
+    bodyHtml,
+    String(formData.get("featuredImageId") ?? "")
+  );
   const requestedSlug = slugify(String(formData.get("slug") ?? "") || existing.slug);
   const slug = requestedSlug === existing.slug ? existing.slug : await ensureUniqueSlug(requestedSlug, existing.id);
 
@@ -165,7 +186,7 @@ export async function updateArticleAction(articleId: string, formData: FormData)
       bodyHtml,
       categoryId,
       location: String(formData.get("location") ?? "") || null,
-      featuredImageId: String(formData.get("featuredImageId") ?? "") || null,
+      featuredImageId,
       imageCaption: String(formData.get("imageCaption") ?? "") || null,
       status: finalStatus,
       publishedAt: !wasPublished && willBePublished ? new Date() : existing.publishedAt,

@@ -179,14 +179,12 @@ export default async function HomePage() {
                 ))}
               </ol>
             </div>
-            <AdSlot slotKey="SIDEBAR_STICKY" />
           </aside>
         </div>
 
         <div className="my-6">
           <AdSlot slotKey="FOOTER_TOP" />
         </div>
-        <AdSlot slotKey="MOBILE_STICKY_BOTTOM" device="MOBILE" />
       </div>
     </div>
   );

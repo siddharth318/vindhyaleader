@@ -203,7 +203,6 @@ export default async function ArticlePage({ params }: Props) {
         </section>
       )}
 
-      <AdSlot slotKey="MOBILE_STICKY_BOTTOM" device="MOBILE" />
     </article>
   );
 }

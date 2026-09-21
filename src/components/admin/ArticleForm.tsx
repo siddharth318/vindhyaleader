@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import RichTextEditor from "./RichTextEditor";
 
 type CategoryOption = { id: string; hindiName: string };
@@ -36,6 +39,21 @@ export default function ArticleForm({
     tags?: string;
   };
 }) {
+  const [featuredImageId, setFeaturedImageId] = useState(article?.featuredImageId ?? "");
+  const [featuredImageAutoSet, setFeaturedImageAutoSet] = useState(false);
+  const [mediaList, setMediaList] = useState(media);
+
+  const handleImageUploaded = (mediaId: string, url: string) => {
+    setMediaList((prev) => (prev.some((m) => m.id === mediaId) ? prev : [...prev, { id: mediaId, filename: url.split("/").pop() ?? mediaId, url }]));
+    // Only auto-fill if the user hasn't already manually chosen a featured image
+    // (either from the existing article, or by hand-picking one in this session).
+    setFeaturedImageId((current) => {
+      if (current && !featuredImageAutoSet) return current;
+      setFeaturedImageAutoSet(true);
+      return mediaId;
+    });
+  };
+
   return (
     <form action={action} className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
       <div className="space-y-4">
@@ -70,7 +88,7 @@ export default function ArticleForm({
 
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
           <label className="mb-2 block text-sm font-medium text-neutral-700">आर्टिकल बॉडी *</label>
-          <RichTextEditor name="bodyHtml" initialContent={article?.bodyHtml} />
+          <RichTextEditor name="bodyHtml" initialContent={article?.bodyHtml} onImageUploaded={handleImageUploaded} />
         </div>
 
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
@@ -143,13 +161,23 @@ export default function ArticleForm({
 
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
           <h3 className="mb-3 font-semibold">फ़ीचर्ड इमेज</h3>
-          <select name="featuredImageId" defaultValue={article?.featuredImageId ?? ""} className="mb-3 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
+          <select
+            name="featuredImageId"
+            value={featuredImageId}
+            onChange={(e) => {
+              setFeaturedImageAutoSet(false);
+              setFeaturedImageId(e.target.value);
+            }}
+            className="mb-3 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          >
             <option value="">-- कोई नहीं --</option>
-            {media.map((m) => (
+            {mediaList.map((m) => (
               <option key={m.id} value={m.id}>{m.filename}</option>
             ))}
           </select>
-          <p className="mb-3 text-xs text-neutral-400">पहले मीडिया लाइब्रेरी में अपलोड करें, फिर यहाँ चुनें।</p>
+          <p className="mb-3 text-xs text-neutral-400">
+            पहले मीडिया लाइब्रेरी में अपलोड करें, फिर यहाँ चुनें — या बॉडी में इमेज पेस्ट करें, यह अपने आप चुन जाएगी।
+          </p>
           <label className="mb-1 block text-sm font-medium text-neutral-700">इमेज कैप्शन</label>
           <input name="imageCaption" defaultValue={article?.imageCaption ?? ""} className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
         </div>
