@@ -6,7 +6,18 @@ import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { uploadEditorImageAction } from "@/lib/actions/media-actions";
+
+/** data: URI -> Blob, so pasted/embedded base64 images can be uploaded like a normal file. */
+function dataUriToBlob(dataUri: string): Blob {
+  const [header, base64] = dataUri.split(",");
+  const mime = header.match(/data:(.*?);base64/)?.[1] ?? "image/png";
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
 
 function ToolbarButton({
   onClick,
@@ -57,6 +68,58 @@ export default function RichTextEditor({
 
   useEffect(() => {
     return () => editor?.destroy();
+  }, [editor]);
+
+  // Auto-upload any pasted/dropped image embedded as a base64 data: URI (common when
+  // pasting from Word/Google Docs) — replaces it with a real hosted URL so it survives
+  // sanitization on save and doesn't bloat the article HTML with inline base64 blobs.
+  const inFlight = useRef(new Set<string>());
+  useEffect(() => {
+    if (!editor) return;
+
+    const uploadEmbeddedImages = () => {
+      const jobs: { pos: number; dataUri: string }[] = [];
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === "image" && typeof node.attrs.src === "string" && node.attrs.src.startsWith("data:")) {
+          jobs.push({ pos, dataUri: node.attrs.src });
+        }
+      });
+
+      for (const { dataUri } of jobs) {
+        if (inFlight.current.has(dataUri)) continue;
+        inFlight.current.add(dataUri);
+
+        (async () => {
+          try {
+            const blob = dataUriToBlob(dataUri);
+            const formData = new FormData();
+            formData.append("file", blob, "pasted-image.png");
+            const result = await uploadEditorImageAction(formData);
+            if ("url" in result) {
+              editor.state.doc.descendants((node, currentPos) => {
+                if (node.type.name === "image" && node.attrs.src === dataUri) {
+                  editor.view.dispatch(
+                    editor.view.state.tr.setNodeAttribute(currentPos, "src", result.url)
+                  );
+                }
+                return true;
+              });
+            }
+          } catch {
+            // Leave the data: URI in place on failure — sanitizer will drop it, but the
+            // rest of the article still saves.
+          } finally {
+            inFlight.current.delete(dataUri);
+          }
+        })();
+      }
+    };
+
+    editor.on("update", uploadEmbeddedImages);
+    uploadEmbeddedImages();
+    return () => {
+      editor.off("update", uploadEmbeddedImages);
+    };
   }, [editor]);
 
   if (!editor) return null;
