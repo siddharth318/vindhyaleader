@@ -1,0 +1,213 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  EDITOR
+  REPORTER
+}
+
+enum ArticleStatus {
+  DRAFT
+  PENDING_REVIEW
+  SCHEDULED
+  PUBLISHED
+  UNPUBLISHED
+  ARCHIVED
+}
+
+enum AdDevice {
+  ALL
+  DESKTOP
+  TABLET
+  MOBILE
+}
+
+enum AdCodeType {
+  ADSENSE
+  GPT
+  HTML
+  IMAGE
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  role         Role       @default(REPORTER)
+  active       Boolean    @default(true)
+  bio          String?
+  avatarUrl    String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  articles     Article[]
+  media        Media[]
+  auditLogs    AuditLog[]
+}
+
+model Category {
+  id              String     @id @default(cuid())
+  name            String
+  hindiName       String
+  slug            String     @unique
+  description     String?
+  image           String?
+  parentId        String?
+  parent          Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children        Category[] @relation("CategoryTree")
+  displayOrder    Int        @default(0)
+  seoTitle        String?
+  seoDescription  String?
+  active          Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  articles        Article[]
+}
+
+model Tag {
+  id    String       @id @default(cuid())
+  name  String
+  slug  String       @unique
+  articles ArticleTag[]
+}
+
+model ArticleTag {
+  articleId String
+  tagId     String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+}
+
+model Media {
+  id           String   @id @default(cuid())
+  filename     String
+  url          String
+  width        Int?
+  height       Int?
+  altText      String?
+  caption      String?
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+
+  featuredFor  Article[] @relation("FeaturedImage")
+  socialFor    Article[] @relation("SocialImage")
+}
+
+model Article {
+  id               String        @id @default(cuid())
+  title            String
+  hindiTitle       String
+  slug             String        @unique
+  excerpt          String?
+  bodyHtml         String
+  featuredImageId  String?
+  featuredImage    Media?        @relation("FeaturedImage", fields: [featuredImageId], references: [id])
+  imageCaption     String?
+  categoryId       String
+  category         Category      @relation(fields: [categoryId], references: [id])
+  authorId         String
+  author           User          @relation(fields: [authorId], references: [id])
+  location         String?
+  tags             ArticleTag[]
+
+  publishedAt      DateTime?
+  scheduledFor     DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  status           ArticleStatus @default(DRAFT)
+
+  isFeatured       Boolean       @default(false)
+  isBreaking       Boolean       @default(false)
+  isTrending       Boolean       @default(false)
+  isEditorsPick    Boolean       @default(false)
+
+  seoTitle         String?
+  seoDescription   String?
+  seoKeywords      String?
+  canonicalUrl     String?
+  socialImageId    String?
+  socialImage      Media?        @relation("SocialImage", fields: [socialImageId], references: [id])
+
+  viewCount        Int           @default(0)
+  views            ArticleView[]
+
+  @@index([status, publishedAt])
+  @@index([categoryId, status, publishedAt])
+}
+
+model ArticleView {
+  id        String   @id @default(cuid())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  date      DateTime
+  count     Int      @default(0)
+
+  @@unique([articleId, date])
+}
+
+model AdSlot {
+  id            String          @id @default(cuid())
+  key           String          @unique
+  label         String
+  description   String?
+  active        Boolean         @default(true)
+  advertisements Advertisement[]
+}
+
+model Advertisement {
+  id         String     @id @default(cuid())
+  name       String
+  slotId     String
+  slot       AdSlot     @relation(fields: [slotId], references: [id])
+  device     AdDevice   @default(ALL)
+  codeType   AdCodeType @default(IMAGE)
+  code       String?
+  imageUrl   String?
+  linkUrl    String?
+  startDate  DateTime?
+  endDate    DateTime?
+  active     Boolean    @default(true)
+  priority   Int        @default(0)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([slotId, active])
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model RedirectRule {
+  id         String   @id @default(cuid())
+  fromPath   String   @unique
+  toPath     String
+  statusCode Int      @default(301)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String?
+  meta       String?
+  createdAt  DateTime @default(now())
+}
