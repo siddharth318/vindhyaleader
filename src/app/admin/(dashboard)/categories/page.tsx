@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { createCategoryAction, deleteCategoryAction } from "@/lib/actions/category-actions";
+import SubmitButton from "@/components/admin/SubmitButton";
 
 export const metadata = { title: "श्रेणी प्रबंधन" };
 
@@ -27,9 +28,12 @@ export default async function CategoriesPage() {
         </select>
         <input name="displayOrder" type="number" placeholder="क्रम संख्या" defaultValue={0} className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
         <input name="description" placeholder="विवरण" className="rounded-md border border-neutral-300 px-3 py-2 text-sm sm:col-span-2" />
-        <button type="submit" className="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
+        <SubmitButton
+          pendingText="जोड़ा जा रहा है…"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-70"
+        >
           + श्रेणी जोड़ें
-        </button>
+        </SubmitButton>
       </form>
 
       <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
@@ -54,7 +58,12 @@ export default async function CategoriesPage() {
                 <td className="px-4 py-2">{c.active ? "✅" : "❌"}</td>
                 <td className="px-4 py-2">
                   <form action={deleteCategoryAction.bind(null, c.id)}>
-                    <button className="text-red-700 hover:underline">हटाएँ</button>
+                    <SubmitButton
+                      confirm="इस श्रेणी को हटाना निश्चित है?"
+                      className="inline-flex items-center gap-1.5 text-red-700 hover:underline disabled:opacity-50"
+                    >
+                      हटाएँ
+                    </SubmitButton>
                   </form>
                 </td>
               </tr>

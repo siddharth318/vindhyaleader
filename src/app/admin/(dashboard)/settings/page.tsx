@@ -1,5 +1,6 @@
 import { getSettings } from "@/lib/data/settings";
 import { updateSettingsAction } from "@/lib/actions/settings-actions";
+import SubmitButton from "@/components/admin/SubmitButton";
 
 export const metadata = { title: "सेटिंग्स" };
 
@@ -41,9 +42,12 @@ export default async function SettingsPage() {
           <label className="mb-1 block text-sm font-medium text-neutral-700">संपर्क ईमेल</label>
           <input name="contact_email" defaultValue={settings.contact_email ?? ""} className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
         </div>
-        <button type="submit" className="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
+        <SubmitButton
+          pendingText="सहेजा जा रहा है…"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-70"
+        >
           सहेजें
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );

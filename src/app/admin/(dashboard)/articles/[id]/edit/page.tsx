@@ -11,7 +11,7 @@ export default async function EditArticlePage({ params }: { params: Promise<{ id
   const session = await getSession();
 
   const [article, categories, media] = await Promise.all([
-    prisma.article.findUnique({ where: { id }, include: { tags: { include: { tag: true } } } }),
+    prisma.article.findUnique({ where: { id }, include: { tags: { include: { tag: true } }, featuredImage: true } }),
     prisma.category.findMany({ where: { active: true }, orderBy: { displayOrder: "asc" } }),
     prisma.media.findMany({ orderBy: { createdAt: "desc" }, take: 50 }),
   ]);
@@ -38,6 +38,7 @@ export default async function EditArticlePage({ params }: { params: Promise<{ id
           categoryId: article.categoryId,
           location: article.location,
           featuredImageId: article.featuredImageId,
+          featuredImageUrl: article.featuredImage?.url ?? null,
           imageCaption: article.imageCaption,
           status: article.status,
           isFeatured: article.isFeatured,

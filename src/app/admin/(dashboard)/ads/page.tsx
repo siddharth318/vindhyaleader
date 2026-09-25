@@ -5,6 +5,7 @@ import {
   toggleAdvertisementAction,
   deleteAdvertisementAction,
 } from "@/lib/actions/ad-actions";
+import SubmitButton from "@/components/admin/SubmitButton";
 
 export const metadata = { title: "विज्ञापन प्रबंधन" };
 
@@ -22,9 +23,12 @@ export default async function AdsPage() {
           <input name="key" placeholder="SLOT_KEY (जैसे HOME_HERO_TOP)" required className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
           <input name="label" placeholder="लेबल" required className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
           <input name="description" placeholder="विवरण (वैकल्पिक)" className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-          <button type="submit" className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white">
+          <SubmitButton
+            pendingText="जोड़ा जा रहा है…"
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+          >
             + स्लॉट जोड़ें
-          </button>
+          </SubmitButton>
         </form>
         <div className="flex flex-wrap gap-2 text-xs">
           {slots.map((s) => (
@@ -64,9 +68,12 @@ export default async function AdsPage() {
           <label className="text-sm text-neutral-600">अंत तारीख<input type="date" name="endDate" className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" /></label>
           <label className="text-sm text-neutral-600">प्राथमिकता<input type="number" name="priority" defaultValue={0} className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" /></label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked /> सक्रिय</label>
-          <button type="submit" className="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 sm:col-span-2 lg:col-span-1">
+          <SubmitButton
+            pendingText="जोड़ा जा रहा है…"
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-70 sm:col-span-2 lg:col-span-1"
+          >
             + विज्ञापन जोड़ें
-          </button>
+          </SubmitButton>
         </form>
       </div>
 
@@ -95,14 +102,21 @@ export default async function AdsPage() {
                   <td className="px-4 py-2">{ad.priority}</td>
                   <td className="px-4 py-2">
                     <form action={toggleAdvertisementAction.bind(null, ad.id, !ad.active)}>
-                      <button className={ad.active ? "text-green-700" : "text-neutral-400"}>
+                      <SubmitButton
+                        className={`inline-flex items-center gap-1.5 disabled:opacity-50 ${ad.active ? "text-green-700" : "text-neutral-400"}`}
+                      >
                         {ad.active ? "✅ सक्रिय" : "❌ निष्क्रिय"}
-                      </button>
+                      </SubmitButton>
                     </form>
                   </td>
                   <td className="px-4 py-2">
                     <form action={deleteAdvertisementAction.bind(null, ad.id)}>
-                      <button className="text-red-700 hover:underline">हटाएँ</button>
+                      <SubmitButton
+                        confirm="इस विज्ञापन को हटाना निश्चित है?"
+                        className="inline-flex items-center gap-1.5 text-red-700 hover:underline disabled:opacity-50"
+                      >
+                        हटाएँ
+                      </SubmitButton>
                     </form>
                   </td>
                 </tr>

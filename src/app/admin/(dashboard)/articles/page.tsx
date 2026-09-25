@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession, hasRole } from "@/lib/auth";
+import SubmitButton from "@/components/admin/SubmitButton";
 import {
   approveArticleAction,
   deleteArticleAction,
@@ -50,6 +51,7 @@ export default async function ArticlesListPage({
       hindiTitle: true,
       status: true,
       createdAt: true,
+      viewCount: true,
       category: { select: { hindiName: true } },
       author: { select: { name: true } },
     },
@@ -82,6 +84,7 @@ export default async function ArticlesListPage({
               <th className="px-4 py-2">श्रेणी</th>
               <th className="px-4 py-2">लेखक</th>
               <th className="px-4 py-2">स्थिति</th>
+              <th className="px-4 py-2">Views</th>
               <th className="px-4 py-2">कार्रवाई</th>
             </tr>
           </thead>
@@ -100,6 +103,9 @@ export default async function ArticlesListPage({
                     {STATUS_LABEL[a.status]}
                   </span>
                 </td>
+                <td className="px-4 py-2 font-semibold tabular-nums text-neutral-700">
+                  {a.viewCount.toLocaleString("en-IN")}
+                </td>
                 <td className="px-4 py-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <Link href={`/admin/articles/${a.id}/edit`} className="text-blue-700 hover:underline">
@@ -108,21 +114,26 @@ export default async function ArticlesListPage({
                     {isSuperAdmin && a.status === "PENDING_REVIEW" && (
                       <>
                         <form action={approveArticleAction.bind(null, a.id)}>
-                          <button className="font-semibold text-green-700 hover:underline">✓ स्वीकृत व प्रकाशित करें</button>
+                          <SubmitButton className="inline-flex items-center gap-1.5 font-semibold text-green-700 hover:underline disabled:opacity-50">✓ स्वीकृत व प्रकाशित करें</SubmitButton>
                         </form>
                         <form action={rejectArticleAction.bind(null, a.id)}>
-                          <button className="text-red-700 hover:underline">✕ अस्वीकृत करें</button>
+                          <SubmitButton className="inline-flex items-center gap-1.5 text-red-700 hover:underline disabled:opacity-50">✕ अस्वीकृत करें</SubmitButton>
                         </form>
                       </>
                     )}
                     {isSuperAdmin && a.status === "PUBLISHED" && (
                       <form action={toggleArticleStatusAction.bind(null, a.id, "UNPUBLISHED")}>
-                        <button className="text-amber-700 hover:underline">अप्रकाशित करें</button>
+                        <SubmitButton className="inline-flex items-center gap-1.5 text-amber-700 hover:underline disabled:opacity-50">अप्रकाशित करें</SubmitButton>
                       </form>
                     )}
                     {isEditor && (
                       <form action={deleteArticleAction.bind(null, a.id)}>
-                        <button className="text-red-700 hover:underline">हटाएँ</button>
+                        <SubmitButton
+                          confirm="इस खबर को हटाना निश्चित है?"
+                          className="inline-flex items-center gap-1.5 text-red-700 hover:underline disabled:opacity-50"
+                        >
+                          हटाएँ
+                        </SubmitButton>
                       </form>
                     )}
                   </div>

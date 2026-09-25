@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { uploadMediaAction, deleteMediaAction } from "@/lib/actions/media-actions";
+import SubmitButton from "@/components/admin/SubmitButton";
 
 export const metadata = { title: "मीडिया लाइब्रेरी" };
 
@@ -26,9 +27,13 @@ export default async function MediaLibraryPage() {
           <label className="mb-1 block text-sm font-medium text-neutral-700">कैप्शन</label>
           <input name="caption" className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
         </div>
-        <button type="submit" className="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
+        <SubmitButton
+          overlay
+          pendingText="अपलोड हो रहा है…"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-70"
+        >
           अपलोड करें
-        </button>
+        </SubmitButton>
       </form>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
@@ -39,7 +44,13 @@ export default async function MediaLibraryPage() {
             <div className="p-2">
               <p className="truncate text-xs text-neutral-500" title={m.url}>{m.url}</p>
               <form action={deleteMediaAction.bind(null, m.id)}>
-                <button className="mt-1 text-xs text-red-700 hover:underline">हटाएँ</button>
+                <SubmitButton
+                  confirm="इस मीडिया को हटाना निश्चित है?"
+                  className="mt-1 inline-flex items-center gap-1 text-xs text-red-700 hover:underline disabled:opacity-50"
+                  spinnerClassName="h-3 w-3"
+                >
+                  हटाएँ
+                </SubmitButton>
               </form>
             </div>
           </div>

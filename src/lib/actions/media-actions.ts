@@ -1,47 +1,13 @@
 "use server";
 
-import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 import { getSession, hasRole } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { saveUpload } from "@/lib/storage";
+import { processAndStoreImage } from "@/lib/media-ingest";
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const MAX_SIZE = 8 * 1024 * 1024; // 8MB
-
-async function processAndStoreImage(
-  buffer: Buffer,
-  uploadedById: string,
-  altText?: string | null,
-  caption?: string | null
-) {
-  const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
-
-  // Re-encode to WebP (strips EXIF/malicious metadata, ensures consistent optimized format).
-  const image = sharp(buffer).rotate().resize({ width: 1600, withoutEnlargement: true }).webp({ quality: 82 });
-  const outputBuffer = await image.toBuffer();
-  const metadata = await sharp(outputBuffer).metadata();
-  const url = await saveUpload(outputBuffer, safeName, "image/webp");
-
-  const media = await prisma.media.create({
-    data: {
-      filename: safeName,
-      url,
-      width: metadata.width ?? null,
-      height: metadata.height ?? null,
-      altText: altText || null,
-      caption: caption || null,
-      uploadedById,
-    },
-  });
-
-  await prisma.auditLog.create({
-    data: { userId: uploadedById, action: "UPLOAD", entityType: "Media", entityId: media.id },
-  });
-
-  return media;
-}
 
 export async function uploadMediaAction(formData: FormData) {
   const session = await getSession();

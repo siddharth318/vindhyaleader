@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { loginAction } from "@/lib/actions/auth-actions";
+import Spinner from "@/components/Spinner";
 
 export default function LoginForm() {
   const [state, formAction, pending] = useActionState(loginAction, undefined);
@@ -30,8 +31,10 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-red-700 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-60"
+        aria-busy={pending}
+        className="flex w-full items-center justify-center gap-2 rounded-md bg-red-700 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-60"
       >
+        {pending && <Spinner className="h-4 w-4" />}
         {pending ? "लॉगिन हो रहा है..." : "लॉगिन करें"}
       </button>
     </form>

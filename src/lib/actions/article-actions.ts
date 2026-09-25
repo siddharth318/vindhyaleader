@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { getSession, hasRole } from "@/lib/auth";
 import { slugify, uniqueSuffix } from "@/lib/slug";
 import { sanitizeArticleHtml } from "@/lib/sanitize";
+import { firstBodyImageUrl } from "@/lib/article-images";
+import { rehostRemoteImages } from "@/lib/media-ingest";
 import type { ArticleStatus } from "@prisma/client";
 
 async function requireReporter() {
@@ -49,8 +51,18 @@ function revalidateArticleSurfaces(categorySlug: string, slug: string) {
   revalidatePath("/sitemap.xml");
 }
 
+/**
+ * Decides the article's featured (cover) image.
+ *
+ * An explicit cover — chosen from the media picker or uploaded from the device
+ * via the form's cover button — always wins. Only when no cover was chosen do
+ * we auto-promote the *first* image in the body, so an admin can still just
+ * paste an image into the news body and have it become the cover.
+ */
 async function resolveFeaturedImageId(bodyHtml: string, submittedImageId: string) {
-  const firstImageUrl = bodyHtml.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i)?.[1];
+  if (submittedImageId) return submittedImageId;
+
+  const firstImageUrl = firstBodyImageUrl(bodyHtml);
   if (firstImageUrl) {
     const bodyMedia = await prisma.media.findFirst({
       where: { url: firstImageUrl },
@@ -59,7 +71,7 @@ async function resolveFeaturedImageId(bodyHtml: string, submittedImageId: string
     if (bodyMedia) return bodyMedia.id;
   }
 
-  return submittedImageId || null;
+  return null;
 }
 
 async function syncArticleTags(articleId: string, tagsCsv: string) {
@@ -93,7 +105,12 @@ export async function createArticleAction(formData: FormData) {
   const hindiTitle = String(formData.get("hindiTitle") ?? "").trim();
   const categoryId = String(formData.get("categoryId") ?? "");
   const status = String(formData.get("status") ?? "DRAFT") as ArticleStatus;
-  const bodyHtml = sanitizeArticleHtml(String(formData.get("bodyHtml") ?? ""));
+  // Rehost any external/hot-linked images into our own storage first, so an image
+  // pasted into the body becomes a real Media record (and can be promoted to cover).
+  const bodyHtml = await rehostRemoteImages(
+    sanitizeArticleHtml(String(formData.get("bodyHtml") ?? "")),
+    session.userId
+  );
   const featuredImageId = await resolveFeaturedImageId(
     bodyHtml,
     String(formData.get("featuredImageId") ?? "")
@@ -158,7 +175,10 @@ export async function updateArticleAction(articleId: string, formData: FormData)
   const title = String(formData.get("title") ?? "").trim() || hindiTitle;
   const categoryId = String(formData.get("categoryId") ?? "");
   const requestedStatus = String(formData.get("status") ?? existing.status) as ArticleStatus;
-  const bodyHtml = sanitizeArticleHtml(String(formData.get("bodyHtml") ?? ""));
+  const bodyHtml = await rehostRemoteImages(
+    sanitizeArticleHtml(String(formData.get("bodyHtml") ?? "")),
+    session.userId
+  );
   const featuredImageId = await resolveFeaturedImageId(
     bodyHtml,
     String(formData.get("featuredImageId") ?? "")

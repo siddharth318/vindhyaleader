@@ -4,8 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
 import AdSlot from "@/components/ads/AdSlot";
-import { getArticleBySlug, getRelatedArticles, recordArticleView } from "@/lib/data/articles";
+import { getArticleBySlug, getRelatedArticles } from "@/lib/data/articles";
 import { sanitizeArticleHtml } from "@/lib/sanitize";
+import { removeFirstImageByUrl } from "@/lib/article-images";
+import ViewTracker from "@/components/ViewTracker";
 
 export const revalidate = 60;
 
@@ -63,8 +65,6 @@ export default async function ArticlePage({ params }: Props) {
     notFound();
   }
 
-  recordArticleView(article.id).catch(() => {});
-
   const related = await getRelatedArticles(article.categoryId, article.id, 4);
   const url = `${siteUrl}/${article.category.slug}/${article.slug}`;
 
@@ -106,8 +106,17 @@ export default async function ArticlePage({ params }: Props) {
   const shareText = encodeURIComponent(article.hindiTitle);
   const shareUrl = encodeURIComponent(url);
 
+  // The cover image is shown in its own <figure> above; if it was auto-derived
+  // from the body's first image, drop that first image from the body so it
+  // isn't displayed twice.
+  let bodyForRender = sanitizeArticleHtml(article.bodyHtml);
+  if (article.featuredImage) {
+    bodyForRender = removeFirstImageByUrl(bodyForRender, article.featuredImage.url);
+  }
+
   return (
     <article className="mx-auto max-w-3xl px-4 py-6">
+      <ViewTracker articleId={article.id} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -166,7 +175,7 @@ export default async function ArticlePage({ params }: Props) {
 
       <div
         className="prose prose-neutral max-w-none prose-headings:font-bold prose-a:text-red-700"
-        dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(article.bodyHtml) }}
+        dangerouslySetInnerHTML={{ __html: bodyForRender }}
       />
 
       <AdSlot slotKey="ARTICLE_BOTTOM" className="my-6" />
