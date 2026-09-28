@@ -9,6 +9,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Image uploads go through Server Actions (which default to a 1MB body cap).
+  // Raise it so the 8MB file limit enforced in the media upload actions can
+  // actually be reached — the extra 1MB is headroom for multipart/form-data
+  // overhead (boundaries + part headers) that rides along with the file.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "9mb",
+    },
+  },
 };
 
 export default nextConfig;

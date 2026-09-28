@@ -45,7 +45,7 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function AdminDashboardPage() {
   const session = await getSession();
   const isSuperAdmin = hasRole(session, "SUPER_ADMIN");
-  const [stats, analytics] = await Promise.all([getStats(), getAnalytics({ days: 14, months: 6, topN: 5 })]);
+  const [stats, analytics] = await Promise.all([getStats(), getAnalytics({ days: 14, months: 6, recentN: 5 })]);
 
   const cards = [
     { label: "Today's Articles", value: stats.today },
@@ -109,11 +109,11 @@ export default async function AdminDashboardPage() {
             <BarChart data={analytics.daily} height={90} />
           </div>
         </div>
-        {analytics.topArticles.length > 0 && (
+        {analytics.recentPublished.length > 0 && (
           <div className="mt-5 border-t border-neutral-100 pt-4">
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-400">Most-read articles</p>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-400">Recently published — views</p>
             <ul className="space-y-1.5 text-sm">
-              {analytics.topArticles.map((t, i) => (
+              {analytics.recentPublished.map((t, i) => (
                 <li key={t.id} className="flex items-center justify-between gap-3">
                   <Link href={`/admin/articles/${t.id}/edit`} className="line-clamp-1 min-w-0 hover:text-red-700">
                     <span className="text-neutral-400">{i + 1}.</span> {t.hindiTitle}

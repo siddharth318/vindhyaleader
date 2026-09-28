@@ -8,7 +8,8 @@ import {
   getMostViewedArticles,
 } from "@/lib/data/articles";
 import { getNavCategories } from "@/lib/data/categories";
-import { categoryAccent, categoryIcon } from "@/lib/categoryColors";
+import { categoryAccent } from "@/lib/categoryColors";
+import CategoryPillNav from "@/components/CategoryPillNav";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import Image from "next/image";
@@ -57,9 +58,13 @@ export default async function HomePage() {
     <div className="bg-neutral-50">
       {/* Slogan strip — dark masthead tone, deliberately distinct from the red breaking ticker below */}
       <div className="border-b border-neutral-800 bg-neutral-900">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2">
-          <p className="font-display text-xs font-bold tracking-wide text-amber-400 md:text-sm">
-            🎙️ आपकी अपनी आवाज़ <span className="text-neutral-400">— सच्ची, तेज़ और निष्पक्ष खबरें</span>
+        {/* Full-width like the header; slogan indented on desktop to sit under the
+            "विंध्यलीडर" wordmark (56px logo + 12px gap = 68px past the logo edge). */}
+        <div className="flex items-center justify-between px-4 py-2">
+          <p className="font-display text-xs font-bold tracking-wide md:ml-[68px] md:text-sm">
+            <span className="slogan-mic mr-1" aria-hidden="true">🎙️</span>
+            <span className="slogan-shimmer">आपकी अपनी आवाज़</span>
+            <span className="text-neutral-400"> — सच्ची, तेज़ और निष्पक्ष खबरें</span>
           </p>
           <p className="hidden text-xs font-medium text-neutral-400 md:block">
             {new Intl.DateTimeFormat("hi-IN", {
@@ -76,23 +81,7 @@ export default async function HomePage() {
 
       <div className="mx-auto max-w-6xl px-4 py-4">
         {/* Quick category pill nav */}
-        {navCategories.length > 0 && (
-          <div className="mb-6 flex snap-x gap-2.5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {navCategories.map((c) => {
-              const accent = categoryAccent(c.slug);
-              return (
-                <Link
-                  key={c.id}
-                  href={`/${c.slug}`}
-                  className={`group flex shrink-0 snap-start items-center gap-1.5 rounded-full border border-transparent px-4 py-2 text-xs font-bold whitespace-nowrap shadow-sm ring-1 ring-inset transition-all hover:-translate-y-0.5 hover:shadow-md hover:ring-2 active:translate-y-0 ${accent.bg} ${accent.text} ${accent.ringSoft}`}
-                >
-                  <span className="text-sm leading-none">{categoryIcon(c.slug)}</span>
-                  {c.hindiName}
-                </Link>
-              );
-            })}
-          </div>
-        )}
+        <CategoryPillNav categories={navCategories} />
 
         {/* Hero grid: main story + secondary story strip */}
         {hero && (

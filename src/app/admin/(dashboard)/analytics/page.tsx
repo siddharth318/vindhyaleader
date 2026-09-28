@@ -14,6 +14,13 @@ function formatDate(date: Date | null) {
   return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(date);
 }
 
+/** Bar colour by absolute view count: >100 green, 50–100 yellow, <50 red. */
+function viewBarColor(views: number) {
+  if (views > 100) return "bg-green-600";
+  if (views >= 50) return "bg-yellow-400";
+  return "bg-red-500";
+}
+
 function Kpi({ label, value, hint, accent }: { label: string; value: number; hint?: string; accent?: string }) {
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
@@ -27,6 +34,7 @@ function Kpi({ label, value, hint, accent }: { label: string; value: number; hin
 export default async function AnalyticsPage() {
   const a = await getAnalytics({ days: 30, months: 6, topN: 10 });
   const topMax = Math.max(1, ...a.topArticles.map((t) => t.viewCount));
+  const recentMax = Math.max(1, ...a.recentPublished.map((t) => t.viewCount));
 
   return (
     <div className="space-y-6">
@@ -86,9 +94,67 @@ export default async function AnalyticsPage() {
         </div>
       </div>
 
+      {/* Recently published — views for the latest 10 articles */}
+      <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="font-semibold">Recently published — views</h2>
+          <div className="flex items-center gap-3 text-[11px] text-neutral-500">
+            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-green-600" /> 100+</span>
+            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-yellow-400" /> 50–100</span>
+            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-red-500" /> &lt;50</span>
+          </div>
+        </div>
+        {a.recentPublished.length === 0 ? (
+          <p className="py-6 text-center text-sm text-neutral-400">No published articles yet.</p>
+        ) : (
+          <ol className="space-y-2.5">
+            {a.recentPublished.map((t, i) => (
+              <li key={t.id} className="flex items-center gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-black text-neutral-500">
+                  {i + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-3">
+                    <Link
+                      href={`/${t.category.slug}/${t.slug}`}
+                      target="_blank"
+                      className="line-clamp-1 text-sm font-semibold text-neutral-800 hover:text-red-700"
+                    >
+                      {t.hindiTitle}
+                    </Link>
+                    <span className="shrink-0 text-sm font-bold tabular-nums text-neutral-900">{fmt(t.viewCount)}</span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-100">
+                      <div
+                        className={`h-full rounded-full ${viewBarColor(t.viewCount)}`}
+                        style={{ width: `${(t.viewCount / recentMax) * 100}%` }}
+                      />
+                    </div>
+                    <span className="shrink-0 text-[11px] text-neutral-400">
+                      {t.category.hindiName} · {formatDate(t.publishedAt)}
+                    </span>
+                  </div>
+                </div>
+                <Link href={`/admin/articles/${t.id}/edit`} className="shrink-0 text-xs text-blue-700 hover:underline">
+                  Edit
+                </Link>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+
       {/* Top articles — the key per-article metric */}
       <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-        <h2 className="mb-4 font-semibold">Most-read articles</h2>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="font-semibold">Most-read articles</h2>
+          <div className="flex items-center gap-3 text-[11px] text-neutral-500">
+            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-green-600" /> 100+</span>
+            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-yellow-400" /> 50–100</span>
+            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-red-500" /> &lt;50</span>
+          </div>
+        </div>
         {a.topArticles.length === 0 ? (
           <p className="py-6 text-center text-sm text-neutral-400">No views recorded yet.</p>
         ) : (
@@ -111,7 +177,10 @@ export default async function AnalyticsPage() {
                   </div>
                   <div className="mt-1 flex items-center gap-2">
                     <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-100">
-                      <div className="h-full rounded-full bg-red-500" style={{ width: `${(t.viewCount / topMax) * 100}%` }} />
+                      <div
+                        className={`h-full rounded-full ${viewBarColor(t.viewCount)}`}
+                        style={{ width: `${(t.viewCount / topMax) * 100}%` }}
+                      />
                     </div>
                     <span className="shrink-0 text-[11px] text-neutral-400">
                       {t.category.hindiName} · {formatDate(t.publishedAt)}

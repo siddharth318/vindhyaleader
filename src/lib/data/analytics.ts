@@ -20,6 +20,7 @@ export type Analytics = {
   daily: SeriesPoint[]; // last N days
   monthly: SeriesPoint[]; // last N months
   topArticles: TopArticle[];
+  recentPublished: TopArticle[];
 };
 
 function startOfToday() {
@@ -43,7 +44,7 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
  * per-article counts) and Article.viewCount (per-article totals). No external
  * service required — the site records a view for every article read.
  */
-export async function getAnalytics({ days = 30, months = 6, topN = 10 } = {}): Promise<Analytics> {
+export async function getAnalytics({ days = 30, months = 6, topN = 10, recentN = 10 } = {}): Promise<Analytics> {
   const today = startOfToday();
 
   const dailySince = new Date(today);
@@ -58,7 +59,16 @@ export async function getAnalytics({ days = 30, months = 6, topN = 10 } = {}): P
 
   const rangeStart = dailySince < monthlySince ? dailySince : monthlySince;
 
-  const [totalAgg, trackedArticles, rows, topArticles] = await Promise.all([
+  const articleSelect = {
+    id: true,
+    hindiTitle: true,
+    slug: true,
+    viewCount: true,
+    publishedAt: true,
+    category: { select: { hindiName: true, slug: true } },
+  } as const;
+
+  const [totalAgg, trackedArticles, rows, topArticles, recentPublished] = await Promise.all([
     prisma.article.aggregate({ _sum: { viewCount: true } }),
     prisma.article.count({ where: { viewCount: { gt: 0 } } }),
     prisma.articleView.findMany({
@@ -69,14 +79,13 @@ export async function getAnalytics({ days = 30, months = 6, topN = 10 } = {}): P
       where: { viewCount: { gt: 0 } },
       orderBy: { viewCount: "desc" },
       take: topN,
-      select: {
-        id: true,
-        hindiTitle: true,
-        slug: true,
-        viewCount: true,
-        publishedAt: true,
-        category: { select: { hindiName: true, slug: true } },
-      },
+      select: articleSelect,
+    }),
+    prisma.article.findMany({
+      where: { status: "PUBLISHED", publishedAt: { not: null } },
+      orderBy: { publishedAt: "desc" },
+      take: recentN,
+      select: articleSelect,
     }),
   ]);
 
@@ -135,5 +144,6 @@ export async function getAnalytics({ days = 30, months = 6, topN = 10 } = {}): P
     daily,
     monthly,
     topArticles,
+    recentPublished,
   };
 }

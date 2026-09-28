@@ -58,18 +58,20 @@ function HeroCard({ article }: { article: ArticleCardData }) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
       </Link>
-      <div className="relative z-10 flex h-full min-h-[320px] flex-col justify-end gap-3 p-5 md:min-h-[420px] md:p-8">
+      {/* pointer-events-none lets clicks on the image/empty area fall through to the
+          full-card link above; interactive children re-enable pointer events. */}
+      <div className="pointer-events-none relative z-10 flex h-full min-h-[320px] flex-col justify-end gap-3 p-5 md:min-h-[420px] md:p-8">
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href={`/${article.category.slug}`}
-            className={`rounded-full px-2.5 py-1 text-xs font-bold text-white shadow-sm ${accent.solid}`}
+            className={`pointer-events-auto rounded-full px-2.5 py-1 text-xs font-bold text-white shadow-sm ${accent.solid}`}
           >
             {article.category.hindiName}
           </Link>
           {article.isBreaking && <Badge tone="red">ब्रेकिंग</Badge>}
           {article.isTrending && <Badge tone="amber">ट्रेंडिंग</Badge>}
         </div>
-        <Link href={href}>
+        <Link href={href} className="pointer-events-auto">
           <h1 className="text-2xl font-black leading-tight text-white drop-shadow-sm md:text-4xl md:leading-tight">
             {article.hindiTitle}
           </h1>
