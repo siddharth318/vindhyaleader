@@ -9,6 +9,12 @@ on:
     - main
   workflow_dispatch:
 
+# Serialize deploys so two runs never ZIP-deploy to the App Service at once
+# (simultaneous deploys race for the Kudu lock and fail with 409 Conflict).
+concurrency:
+  group: deploy-vindhyaleader-app-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
