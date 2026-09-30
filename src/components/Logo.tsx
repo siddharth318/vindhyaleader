@@ -7,16 +7,19 @@
 export function LogoMark({
   className = "h-11 w-11",
   instanceId = "default",
+  size,
 }: {
   className?: string;
   /** Distinguishes gradient IDs when multiple LogoMarks render on one page (header, footer, drawer) — plain prop, not a hook, so it also works inside the ImageResponse/Satori renderer used by icon.tsx. */
   instanceId?: string;
+  /** Explicit pixel size — needed by the ImageResponse/Satori renderer, which ignores className. */
+  size?: number;
 }) {
   const bgId = `vl-bg-${instanceId}`;
   const sunId = `vl-sun-${instanceId}`;
 
   return (
-    <svg viewBox="0 0 48 48" className={className} role="img" aria-label="विंध्यलीडर">
+    <svg viewBox="0 0 48 48" width={size} height={size} className={className} role="img" aria-label="विंध्यलीडर">
       <defs>
         <linearGradient id={bgId} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#dc2626" />

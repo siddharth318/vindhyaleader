@@ -11,10 +11,19 @@ import { getNavCategories } from "@/lib/data/categories";
 import { categoryAccent } from "@/lib/categoryColors";
 import CategoryPillNav from "@/components/CategoryPillNav";
 import { prisma } from "@/lib/prisma";
+import { HOME_DESCRIPTION, HOME_TITLE, REGIONS, SITE_KEYWORDS, pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import Image from "next/image";
 
 export const revalidate = 60;
+
+export const metadata = pageMetadata({
+  title: HOME_TITLE,
+  absoluteTitle: true,
+  description: HOME_DESCRIPTION,
+  path: "/",
+  keywords: SITE_KEYWORDS,
+});
 
 async function getCategoryRail(slug: string, take = 4) {
   return prisma.article.findMany({
@@ -56,6 +65,10 @@ export default async function HomePage() {
 
   return (
     <div className="bg-neutral-50">
+      {/* The page's topical H1 (the logo wordmark isn't a heading). Visually hidden;
+          the same message is shown in the "coverage" section at the bottom. */}
+      <h1 className="sr-only">विंध्यलीडर – सोनभद्र न्यूज़, राबर्ट्सगंज व पूर्वांचल की ताज़ा हिंदी खबरें (Sonbhadra News)</h1>
+
       {/* Slogan strip — dark masthead tone, deliberately distinct from the red breaking ticker below */}
       <div className="border-b border-neutral-800 bg-neutral-900">
         {/* Full-width like the header; slogan indented on desktop to sit under the
@@ -170,6 +183,38 @@ export default async function HomePage() {
             </div>
           </aside>
         </div>
+
+        {/* Coverage area — who we are and where we report from (also the page's key regional copy). */}
+        <section className="mt-10 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+          <h2 className="font-display text-lg font-extrabold text-neutral-900 md:text-xl">
+            सोनभद्र व पूर्वांचल की हर खबर, सबसे पहले
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+            विंध्यलीडर सोनभद्र जिले के मुख्यालय राबर्ट्सगंज से प्रकाशित क्षेत्रीय हिंदी समाचार पोर्टल है। हम
+            सोनभद्र की ताज़ा खबरें, ब्रेकिंग न्यूज़ और हर कस्बे-गाँव की जनसमस्याएँ आप तक सबसे पहले पहुँचाते हैं — साथ
+            ही मिर्जापुर, वाराणसी, चंदौली, गाजीपुर समेत पूरे पूर्वांचल और उत्तर प्रदेश की खबरें।
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-neutral-400">
+            Vindhya Leader is a Hindi news portal and newspaper from Robertsganj, Sonbhadra (Uttar Pradesh) — your source for
+            the latest Sonbhadra news, Robertsganj news and breaking news from across Purvanchal.
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {REGIONS.map((r) => (
+              <Link
+                key={r.slug}
+                href={`/${r.slug}`}
+                className="rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700 ring-1 ring-inset ring-red-100 hover:bg-red-100"
+              >
+                {r.hi} न्यूज़
+              </Link>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-neutral-500">
+            <span className="font-semibold text-neutral-600">सोनभद्र के प्रमुख क्षेत्र: </span>
+            {REGIONS[0].towns.map((t) => t.hi).join(" · ")}
+          </p>
+        </section>
 
         <div className="my-6">
           <AdSlot slotKey="FOOTER_TOP" />

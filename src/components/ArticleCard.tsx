@@ -72,9 +72,9 @@ function HeroCard({ article }: { article: ArticleCardData }) {
           {article.isTrending && <Badge tone="amber">ट्रेंडिंग</Badge>}
         </div>
         <Link href={href} className="pointer-events-auto">
-          <h1 className="text-2xl font-black leading-tight text-white drop-shadow-sm md:text-4xl md:leading-tight">
+          <h2 className="text-2xl font-black leading-tight text-white drop-shadow-sm md:text-4xl md:leading-tight">
             {article.hindiTitle}
-          </h1>
+          </h2>
         </Link>
         {article.excerpt && (
           <p className="hidden max-w-2xl text-sm text-neutral-200 md:line-clamp-2 md:block">{article.excerpt}</p>

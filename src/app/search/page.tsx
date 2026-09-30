@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import ArticleCard from "@/components/ArticleCard";
 import { searchArticles } from "@/lib/data/articles";
 
-export const metadata: Metadata = { title: "खोज परिणाम" };
+// Search results are thin, infinitely-variable pages — keep them out of the index
+// (links are still followed so crawlers can reach the articles).
+export const metadata: Metadata = { title: "खोज परिणाम", robots: { index: false, follow: true } };
 
 export default async function SearchPage({
   searchParams,

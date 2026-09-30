@@ -141,7 +141,11 @@ export default function ArticleForm({
           <label className="mb-1 block text-sm font-medium text-neutral-700">SEO विवरण</label>
           <textarea name="seoDescription" rows={2} defaultValue={article?.seoDescription ?? ""} className="mb-3 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
           <label className="mb-1 block text-sm font-medium text-neutral-700">SEO कीवर्ड्स (कॉमा से अलग)</label>
-          <input name="seoKeywords" defaultValue={article?.seoKeywords ?? ""} className="mb-3 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          <input name="seoKeywords" defaultValue={article?.seoKeywords ?? ""} className="mb-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          <p className="mb-3 text-xs text-neutral-400">
+            वैकल्पिक — श्रेणी, स्थान, टैग्स और खबर में आए जिले/कस्बे (जैसे सोनभद्र, राबर्ट्सगंज, ओबरा) के कीवर्ड्स अपने-आप जुड़
+            जाते हैं। SEO शीर्षक/विवरण खाली छोड़ें तो हेडलाइन और खबर के पहले हिस्से से अपने-आप बन जाते हैं।
+          </p>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Canonical URL</label>
           <input name="canonicalUrl" defaultValue={article?.canonicalUrl ?? ""} className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
         </div>

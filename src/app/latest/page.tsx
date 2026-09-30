@@ -1,9 +1,23 @@
+import type { Metadata } from "next";
 import ArticleCard from "@/components/ArticleCard";
 import AdSlot from "@/components/ads/AdSlot";
 import { getLatestArticles } from "@/lib/data/articles";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = { title: "ताज़ा खबरें" };
 export const revalidate = 60;
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ page?: string }> }): Promise<Metadata> {
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
+  const title = "ताज़ा खबरें – Latest News: सोनभद्र, पूर्वांचल व उत्तर प्रदेश की लेटेस्ट न्यूज़";
+  return pageMetadata({
+    title: page > 1 ? `${title} – पेज ${page}` : title,
+    description:
+      "सोनभद्र, राबर्ट्सगंज, पूर्वांचल, उत्तर प्रदेश और देश-दुनिया की सबसे ताज़ा खबरें, मिनट-दर-मिनट। Latest Sonbhadra & Purvanchal news in Hindi.",
+    path: page > 1 ? `/latest?page=${page}` : "/latest",
+    keywords: ["ताज़ा खबरें", "लेटेस्ट न्यूज़", "आज की खबर", "Latest News", "Sonbhadra Latest News", "Purvanchal Latest News"],
+  });
+}
 
 const PAGE_SIZE = 16;
 

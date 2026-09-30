@@ -1,49 +1,91 @@
-import { notFound } from "next/navigation";
+import { cache } from "react";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
 import AdSlot from "@/components/ads/AdSlot";
 import { getArticleBySlug, getRelatedArticles } from "@/lib/data/articles";
+import { prisma } from "@/lib/prisma";
 import { sanitizeArticleHtml } from "@/lib/sanitize";
 import { removeFirstImageByUrl } from "@/lib/article-images";
+import {
+  DEFAULT_OG_IMAGE,
+  SITE,
+  SITE_URL,
+  absoluteUrl,
+  articleKeywords,
+  detectRegions,
+  pageMetadata,
+  plainText,
+  publisherRef,
+  summarize,
+} from "@/lib/seo";
 import ViewTracker from "@/components/ViewTracker";
 
 export const revalidate = 60;
 
 type Props = { params: Promise<{ category: string; slug: string }> };
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const siteUrl = SITE_URL;
+
+// Shared by generateMetadata and the page, so the article is fetched once per request.
+const loadArticle = cache(getArticleBySlug);
+
+/**
+ * Returns the published article for this URL, 301-redirecting when the article
+ * has moved (its slug was changed — see RedirectRule — or it now lives in a
+ * different category), and 404ing otherwise.
+ */
+async function resolveArticle(categorySlug: string, slug: string) {
+  const article = await loadArticle(slug);
+
+  if (!article || article.status !== "PUBLISHED") {
+    const rule = await prisma.redirectRule
+      .findUnique({ where: { fromPath: `/${categorySlug}/${slug}` } })
+      .catch(() => null);
+    if (rule?.active) permanentRedirect(rule.toPath);
+    notFound();
+  }
+
+  if (article.category.slug !== categorySlug) permanentRedirect(`/${article.category.slug}/${article.slug}`);
+  return article;
+}
+
+/** Meta description: editor's SEO description → excerpt → auto-summary of the body. */
+function describe(article: { seoDescription: string | null; excerpt: string | null; bodyHtml: string; hindiTitle: string }) {
+  return (
+    article.seoDescription ||
+    article.excerpt ||
+    summarize(plainText(article.bodyHtml)) ||
+    article.hindiTitle
+  );
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
-  const article = await getArticleBySlug(slug);
-  if (!article || article.status !== "PUBLISHED") return {};
+  const { category: categorySlug, slug } = await params;
+  const article = await resolveArticle(categorySlug, slug);
 
   const title = article.seoTitle || article.hindiTitle;
-  const description = article.seoDescription || article.excerpt || undefined;
-  const image = article.socialImage?.url || article.featuredImage?.url;
+  const image = article.socialImage || article.featuredImage;
 
-  return {
+  return pageMetadata({
     title,
-    description,
-    alternates: { canonical: article.canonicalUrl || `/${article.category.slug}/${article.slug}` },
-    openGraph: {
-      type: "article",
-      title,
-      description,
-      images: image ? [image] : undefined,
+    description: describe(article),
+    path: article.canonicalUrl || `/${article.category.slug}/${article.slug}`,
+    keywords: articleKeywords(article),
+    type: "article",
+    images: image
+      ? [{ url: image.url, width: image.width ?? undefined, height: image.height ?? undefined, alt: image.altText ?? article.hindiTitle }]
+      : [DEFAULT_OG_IMAGE],
+    article: {
       publishedTime: article.publishedAt?.toISOString(),
       modifiedTime: article.updatedAt.toISOString(),
-      authors: [article.author.name],
+      authors: [absoluteUrl(`/author/${article.author.id}`)],
+      section: article.category.hindiName,
+      tags: article.tags.map((t) => t.tag.name),
     },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: image ? [image] : undefined,
-    },
-  };
+  });
 }
 
 function formatDate(date: Date | null) {
@@ -59,33 +101,46 @@ function formatDate(date: Date | null) {
 
 export default async function ArticlePage({ params }: Props) {
   const { category: categorySlug, slug } = await params;
-  const article = await getArticleBySlug(slug);
-
-  if (!article || article.status !== "PUBLISHED" || article.category.slug !== categorySlug) {
-    notFound();
-  }
+  const article = await resolveArticle(categorySlug, slug);
 
   const related = await getRelatedArticles(article.categoryId, article.id, 4);
   const url = `${siteUrl}/${article.category.slug}/${article.slug}`;
+  // Prefer the region the article is actually filed under, then any other detected one.
+  const places = detectRegions({
+    categorySlug: article.category.slug,
+    location: article.location,
+    text: `${article.hindiTitle} ${plainText(article.bodyHtml).slice(0, 600)}`,
+  });
+  const place = places.find((p) => p.region.slug === article.category.slug) ?? places[0];
 
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "NewsArticle",
-        headline: article.hindiTitle,
-        image: article.featuredImage ? [article.featuredImage.url] : undefined,
+        headline: article.hindiTitle.slice(0, 110),
+        description: describe(article),
+        image: [absoluteUrl((article.featuredImage ?? article.socialImage)?.url ?? DEFAULT_OG_IMAGE.url)],
         datePublished: article.publishedAt?.toISOString(),
         dateModified: article.updatedAt.toISOString(),
-        author: { "@type": "Person", name: article.author.name },
-        publisher: {
-          "@type": "Organization",
-          name: "विंध्यलीडर",
-          logo: { "@type": "ImageObject", url: `${siteUrl}/logo.png` },
+        inLanguage: SITE.language,
+        isAccessibleForFree: true,
+        author: {
+          "@type": "Person",
+          name: article.author.name,
+          url: absoluteUrl(`/author/${article.author.id}`),
         },
+        publisher: publisherRef(),
         mainEntityOfPage: { "@type": "WebPage", "@id": url },
         articleSection: article.category.hindiName,
-        description: article.excerpt ?? undefined,
+        keywords: articleKeywords(article).join(", "),
+        contentLocation: place
+          ? {
+              "@type": "Place",
+              name: place.town ? `${place.town.en}, ${place.region.en}` : place.region.en,
+              address: { "@type": "PostalAddress", addressRegion: "Uttar Pradesh", addressCountry: "IN" },
+            }
+          : undefined,
       },
       {
         "@type": "BreadcrumbList",

@@ -6,6 +6,15 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import AdSlot from "@/components/ads/AdSlot";
 import { getSettings } from "@/lib/data/settings";
+import {
+  DEFAULT_OG_IMAGE,
+  HOME_DESCRIPTION,
+  HOME_TITLE,
+  SITE,
+  SITE_KEYWORDS,
+  SITE_URL,
+  organizationJsonLd,
+} from "@/lib/seo";
 
 const notoDevanagari = Noto_Sans_Devanagari({
   variable: "--font-devanagari",
@@ -25,22 +34,50 @@ const baloo = Baloo_2({
   weight: ["600", "700", "800"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const siteUrl = SITE_URL;
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: "विंध्यलीडर | Vindhya Leader — आपकी अपनी आवाज़",
-    template: "%s | विंध्यलीडर",
-  },
-  description:
-    "विंध्यलीडर — आपकी अपनी आवाज़। सोनभद्र, विंध्य क्षेत्र, उत्तर प्रदेश और देश-दुनिया की ताज़ा हिंदी खबरें, राजनीति, क्राइम, खेल, मनोरंजन और अधिक।",
-  openGraph: {
-    type: "website",
-    siteName: "विंध्यलीडर",
-    locale: "hi_IN",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const verify = await getSettings(["google_site_verification", "bing_site_verification"]).catch(
+    () => ({}) as Record<string, string | null>
+  );
+
+  return {
+    metadataBase: new URL(siteUrl),
+    title: { default: HOME_TITLE, template: `%s | ${SITE.nameHi}` },
+    description: HOME_DESCRIPTION,
+    keywords: SITE_KEYWORDS,
+    applicationName: SITE.nameHi,
+    authors: [{ name: SITE.nameHi, url: siteUrl }],
+    publisher: SITE.nameHi,
+    category: "news",
+    openGraph: {
+      type: "website",
+      siteName: SITE.nameHi,
+      locale: SITE.locale,
+      title: HOME_TITLE,
+      description: HOME_DESCRIPTION,
+      images: [DEFAULT_OG_IMAGE],
+    },
+    twitter: { card: "summary_large_image", title: HOME_TITLE, description: HOME_DESCRIPTION, images: [DEFAULT_OG_IMAGE.url] },
+    // Large image previews are required for Google Discover / Top Stories thumbnails.
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
+    },
+    verification: {
+      google: verify.google_site_verification || undefined,
+      other: verify.bing_site_verification ? { "msvalidate.01": verify.bing_site_verification } : undefined,
+    },
+    // Local-relevance hints for the publisher's home town.
+    other: {
+      "geo.region": "IN-UP",
+      "geo.placename": "Robertsganj, Sonbhadra, Uttar Pradesh",
+      "geo.position": `${SITE.geo.latitude};${SITE.geo.longitude}`,
+      ICBM: `${SITE.geo.latitude}, ${SITE.geo.longitude}`,
+    },
+  };
+}
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const { ga4_id: ga4Id, gtm_id: gtmId } = await getSettings(["ga4_id", "gtm_id"]).catch(() => ({
@@ -51,18 +88,15 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
-      {
-        "@type": "Organization",
-        name: "विंध्यलीडर",
-        alternateName: "Vindhya Leader",
-        slogan: "आपकी अपनी आवाज़",
-        url: siteUrl,
-        logo: `${siteUrl}/logo.png`,
-      },
+      organizationJsonLd(),
       {
         "@type": "WebSite",
-        name: "विंध्यलीडर",
+        "@id": `${siteUrl}/#website`,
+        name: SITE.nameHi,
+        alternateName: SITE.alternateNames,
         url: siteUrl,
+        inLanguage: SITE.language,
+        publisher: { "@id": `${siteUrl}/#organization` },
         potentialAction: {
           "@type": "SearchAction",
           target: `${siteUrl}/search?q={search_term_string}`,

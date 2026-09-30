@@ -1,10 +1,16 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
+import { SITE_URL } from "@/lib/seo";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const siteUrl = SITE_URL;
+
+// Rebuilt at most hourly — without this the sitemap was generated once at build
+// time, so newly published articles never reached it until the next deploy.
+// (Fresh articles are also in the Google News sitemap, which is fully dynamic.)
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [categories, articles] = await Promise.all([
+  const [categories, articles, authors] = await Promise.all([
     prisma.category.findMany({ where: { active: true }, select: { slug: true, updatedAt: true } }),
     prisma.article.findMany({
       where: { status: "PUBLISHED" },
@@ -12,13 +18,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       orderBy: { publishedAt: "desc" },
       take: 5000,
     }),
+    prisma.user.findMany({
+      where: { active: true, articles: { some: { status: "PUBLISHED" } } },
+      select: { id: true, updatedAt: true },
+    }),
   ]);
 
   const staticEntries: MetadataRoute.Sitemap = [
     { url: siteUrl, changeFrequency: "always", priority: 1 },
     { url: `${siteUrl}/latest`, changeFrequency: "always", priority: 0.9 },
-    { url: `${siteUrl}/search`, changeFrequency: "weekly", priority: 0.3 },
     { url: `${siteUrl}/contact-us`, changeFrequency: "yearly", priority: 0.2 },
+    { url: `${siteUrl}/advertise-with-us`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${siteUrl}/privacy-policy`, changeFrequency: "yearly", priority: 0.2 },
   ];
 
@@ -26,15 +36,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${siteUrl}/${c.slug}`,
     lastModified: c.updatedAt,
     changeFrequency: "hourly",
-    priority: 0.7,
+    priority: 0.8,
   }));
 
   const articleEntries: MetadataRoute.Sitemap = articles.map((a) => ({
     url: `${siteUrl}/${a.category.slug}/${a.slug}`,
     lastModified: a.updatedAt,
-    changeFrequency: "hourly",
+    changeFrequency: "daily",
     priority: 0.6,
   }));
 
-  return [...staticEntries, ...categoryEntries, ...articleEntries];
+  const authorEntries: MetadataRoute.Sitemap = authors.map((u) => ({
+    url: `${siteUrl}/author/${u.id}`,
+    lastModified: u.updatedAt,
+    changeFrequency: "weekly",
+    priority: 0.3,
+  }));
+
+  return [...staticEntries, ...categoryEntries, ...articleEntries, ...authorEntries];
 }

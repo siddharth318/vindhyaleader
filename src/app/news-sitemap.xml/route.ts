@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
+import { SITE_URL } from "@/lib/seo";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const siteUrl = SITE_URL;
+
+// Always fresh: Google News only wants the last 48 hours.
+export const dynamic = "force-dynamic";
 
 function escapeXml(s: string) {
   return s

@@ -12,6 +12,8 @@ export default async function SettingsPage() {
     "breaking_ticker_enabled",
     "contact_phone",
     "contact_email",
+    "google_site_verification",
+    "bing_site_verification",
   ]);
 
   return (
@@ -29,6 +31,24 @@ export default async function SettingsPage() {
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Google AdSense Client ID</label>
           <input name="adsense_client_id" defaultValue={settings.adsense_client_id ?? ""} placeholder="ca-pub-XXXXXXXXXXXXXXXX" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-neutral-700">Google Search Console verification</label>
+          <input
+            name="google_site_verification"
+            defaultValue={settings.google_site_verification ?? ""}
+            placeholder='Paste the code or the whole <meta name="google-site-verification" …> tag'
+            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-neutral-700">Bing Webmaster verification</label>
+          <input
+            name="bing_site_verification"
+            defaultValue={settings.bing_site_verification ?? ""}
+            placeholder='Paste the code or the whole <meta name="msvalidate.01" …> tag'
+            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          />
         </div>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="breaking_ticker_enabled" defaultChecked={settings.breaking_ticker_enabled === "1"} />

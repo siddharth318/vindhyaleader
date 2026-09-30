@@ -17,9 +17,14 @@ export default async function Footer() {
           </div>
           <p className="mb-3 text-xs font-semibold tracking-wide text-orange-400">आपकी अपनी आवाज़</p>
           <p className="text-neutral-400">
-            विंध्य क्षेत्र और सोनभद्र की स्थानीय खबरों के साथ राष्ट्रीय व अंतरराष्ट्रीय समाचार — प्रामाणिक,
-            निष्पक्ष और तेज़।
+            राबर्ट्सगंज, सोनभद्र से प्रकाशित क्षेत्रीय हिंदी समाचार पोर्टल — सोनभद्र व पूर्वांचल की स्थानीय खबरों के
+            साथ उत्तर प्रदेश, देश-दुनिया के समाचार। प्रामाणिक, निष्पक्ष और तेज़।
           </p>
+          <address className="mt-3 not-italic text-xs text-neutral-500">
+            📍 राबर्ट्सगंज, सोनभद्र, उत्तर प्रदेश – 231216
+            <br />
+            Vindhya Leader · Robertsganj, Sonbhadra, UP
+          </address>
         </div>
         <div>
           <h5 className="mb-2 font-bold text-white">श्रेणियाँ</h5>
@@ -39,7 +44,7 @@ export default async function Footer() {
             {districts.slice(0, 8).map((c) => (
               <li key={c.id}>
                 <Link href={`/${c.slug}`} className="hover:text-white">
-                  {c.hindiName}
+                  {c.hindiName} न्यूज़
                 </Link>
               </li>
             ))}
@@ -72,7 +77,8 @@ export default async function Footer() {
         </div>
       </div>
       <div className="border-t border-neutral-800 px-4 py-4 text-center text-xs text-neutral-500">
-        © {new Date().getFullYear()} विंध्यलीडर | All rights reserved.
+        © {new Date().getFullYear()} विंध्यलीडर (Vindhya Leader) — सोनभद्र न्यूज़ | Sonbhadra & Purvanchal News. All
+        rights reserved.
       </div>
     </footer>
   );

@@ -74,6 +74,25 @@ async function resolveFeaturedImageId(bodyHtml: string, submittedImageId: string
   return null;
 }
 
+/**
+ * When an article's URL changes (new slug or category), 301 the old path to
+ * the new one so search rankings and shared links carry over. Existing rules
+ * pointing at the old path are re-targeted to avoid redirect chains.
+ */
+// Not exported: exports of a "use server" file become client-callable Server Actions.
+async function recordUrlChange(oldPath: string, newPath: string) {
+  if (oldPath === newPath) return;
+  await prisma.$transaction([
+    prisma.redirectRule.deleteMany({ where: { fromPath: newPath } }),
+    prisma.redirectRule.updateMany({ where: { toPath: oldPath }, data: { toPath: newPath } }),
+    prisma.redirectRule.upsert({
+      where: { fromPath: oldPath },
+      create: { fromPath: oldPath, toPath: newPath, statusCode: 301 },
+      update: { toPath: newPath, statusCode: 301, active: true },
+    }),
+  ]);
+}
+
 async function syncArticleTags(articleId: string, tagsCsv: string) {
   const names = Array.from(
     new Set(
@@ -183,8 +202,13 @@ export async function updateArticleAction(articleId: string, formData: FormData)
     bodyHtml,
     String(formData.get("featuredImageId") ?? "")
   );
-  const requestedSlug = slugify(String(formData.get("slug") ?? "") || existing.slug);
-  const slug = requestedSlug === existing.slug ? existing.slug : await ensureUniqueSlug(requestedSlug, existing.id);
+  // Keep the existing slug unless the editor actually typed a different one
+  // (re-slugifying an untouched slug could silently change a live URL).
+  const typedSlug = String(formData.get("slug") ?? "").trim();
+  const slug =
+    !typedSlug || typedSlug === existing.slug
+      ? existing.slug
+      : await ensureUniqueSlug(slugify(typedSlug) || existing.slug, existing.id);
 
   // Only the Super Admin can publish directly; anyone else's edits (including to an
   // already-published article) go back to review before they go live again.
@@ -223,6 +247,11 @@ export async function updateArticleAction(articleId: string, formData: FormData)
   });
 
   await syncArticleTags(articleId, String(formData.get("tags") ?? ""));
+
+  await recordUrlChange(
+    `/${existing.category.slug}/${existing.slug}`,
+    `/${updated.category.slug}/${updated.slug}`
+  );
 
   await prisma.auditLog.create({
     data: { userId: session.userId, action: "UPDATE", entityType: "Article", entityId: articleId },
