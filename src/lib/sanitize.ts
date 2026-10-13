@@ -19,8 +19,23 @@ export function sanitizeArticleHtml(dirty: string): string {
       "*": ["class"],
     },
     allowedIframeHostnames: ["www.youtube.com", "youtube.com", "player.vimeo.com"],
+    // Same non-breaking-space problem as cleanText(), inside body paragraphs.
+    textFilter: (text) => text.replace(ODD_SPACES, " ").replace(ZERO_WIDTH, ""),
     transformTags: {
       a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer nofollow" }),
     },
   });
+}
+
+// Non-breaking / fixed-width spaces and zero-width chars that text pasted from
+// Word/WhatsApp often carries. (ZWJ/ZWNJ are deliberately kept: Devanagari needs them.)
+const ODD_SPACES = /[\u00A0\u2000-\u200A\u202F\u3000]/g;
+const ZERO_WIDTH = /[\u200B\uFEFF]/g;
+
+/**
+ * Normalise plain-text fields (titles, excerpts). Non-breaking spaces turn a whole
+ * headline into one unbreakable "word" that can't wrap and blows out the layout.
+ */
+export function cleanText(input: string): string {
+  return input.replace(ODD_SPACES, " ").replace(ZERO_WIDTH, "").replace(/\s+/g, " ").trim();
 }

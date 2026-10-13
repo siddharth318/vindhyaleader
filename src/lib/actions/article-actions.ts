@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession, hasRole } from "@/lib/auth";
 import { slugify, uniqueSuffix } from "@/lib/slug";
-import { sanitizeArticleHtml } from "@/lib/sanitize";
+import { cleanText, sanitizeArticleHtml } from "@/lib/sanitize";
 import { firstBodyImageUrl } from "@/lib/article-images";
 import { rehostRemoteImages } from "@/lib/media-ingest";
 import type { ArticleStatus } from "@prisma/client";
@@ -120,8 +120,8 @@ async function syncArticleTags(articleId: string, tagsCsv: string) {
 export async function createArticleAction(formData: FormData) {
   const session = await requireReporter();
 
-  const title = String(formData.get("title") ?? "").trim();
-  const hindiTitle = String(formData.get("hindiTitle") ?? "").trim();
+  const title = cleanText(String(formData.get("title") ?? ""));
+  const hindiTitle = cleanText(String(formData.get("hindiTitle") ?? ""));
   const categoryId = String(formData.get("categoryId") ?? "");
   const status = String(formData.get("status") ?? "DRAFT") as ArticleStatus;
   // Rehost any external/hot-linked images into our own storage first, so an image
@@ -150,7 +150,7 @@ export async function createArticleAction(formData: FormData) {
       title: title || hindiTitle,
       hindiTitle,
       slug,
-      excerpt: String(formData.get("excerpt") ?? "") || null,
+      excerpt: cleanText(String(formData.get("excerpt") ?? "")) || null,
       bodyHtml,
       categoryId,
       authorId: session.userId,
@@ -190,8 +190,8 @@ export async function updateArticleAction(articleId: string, formData: FormData)
   const isOwner = existing.authorId === session.userId;
   if (!isEditor && !isOwner) redirect("/admin/articles");
 
-  const hindiTitle = String(formData.get("hindiTitle") ?? "").trim();
-  const title = String(formData.get("title") ?? "").trim() || hindiTitle;
+  const hindiTitle = cleanText(String(formData.get("hindiTitle") ?? ""));
+  const title = cleanText(String(formData.get("title") ?? "")) || hindiTitle;
   const categoryId = String(formData.get("categoryId") ?? "");
   const requestedStatus = String(formData.get("status") ?? existing.status) as ArticleStatus;
   const bodyHtml = await rehostRemoteImages(
@@ -226,7 +226,7 @@ export async function updateArticleAction(articleId: string, formData: FormData)
       title,
       hindiTitle,
       slug,
-      excerpt: String(formData.get("excerpt") ?? "") || null,
+      excerpt: cleanText(String(formData.get("excerpt") ?? "")) || null,
       bodyHtml,
       categoryId,
       location: String(formData.get("location") ?? "") || null,

@@ -7,7 +7,7 @@ import { LogoMark } from "@/components/Logo";
  * third-party ad — it promotes our own advertising page, a standard "house ad"
  * publishers use to fill unsold inventory.
  */
-export default function HouseAd({ slotKey }: { slotKey: string }) {
+export default function HouseAd({ slotKey, compact = false }: { slotKey: string; compact?: boolean }) {
   const vertical = slotKey.includes("SIDEBAR");
 
   if (vertical) {
@@ -33,7 +33,10 @@ export default function HouseAd({ slotKey }: { slotKey: string }) {
   return (
     <Link
       href="/advertise-with-us"
-      className="group flex h-full w-full items-center justify-center gap-4 bg-gradient-to-r from-red-700 via-red-600 to-orange-600 px-4 py-3 text-white"
+      // compact: slimmer padding so it sits at the height of a carousel's image slide
+      className={`group flex h-full w-full items-center justify-center gap-4 bg-gradient-to-r from-red-700 via-red-600 to-orange-600 px-4 text-white ${
+        compact ? "py-1" : "py-3"
+      }`}
     >
       <LogoMark className="h-9 w-9 shrink-0 ring-2 ring-white/40" instanceId={`house-${slotKey}`} />
       <p className="min-w-0 flex-1 truncate font-display text-sm font-bold sm:text-base">

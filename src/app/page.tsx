@@ -9,6 +9,7 @@ import {
 } from "@/lib/data/articles";
 import { getNavCategories } from "@/lib/data/categories";
 import { categoryAccent } from "@/lib/categoryColors";
+import { cleanText } from "@/lib/sanitize";
 import CategoryPillNav from "@/components/CategoryPillNav";
 import { prisma } from "@/lib/prisma";
 import { HOME_DESCRIPTION, HOME_TITLE, REGIONS, SITE_KEYWORDS, pageMetadata } from "@/lib/seo";
@@ -99,10 +100,10 @@ export default async function HomePage() {
         {/* Hero grid: main story + secondary story strip */}
         {hero && (
           <section className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
-            <div className="lg:h-[420px]">
+            <div className="min-w-0 lg:h-[420px]">
               <ArticleCard article={hero} size="lg" />
             </div>
-            <div className="flex flex-col gap-3 lg:h-[420px] lg:overflow-y-auto lg:pr-1">
+            <div className="flex min-w-0 flex-col gap-3 lg:h-[420px] lg:overflow-y-auto lg:pr-1">
               {secondary.slice(0, 4).map((a) => (
                 <ArticleCard key={a.slug} article={a} size="strip" />
               ))}
@@ -110,12 +111,20 @@ export default async function HomePage() {
           </section>
         )}
 
+        {/* Below lg the sidebar stacks under the content, so the big sidebar ad would sit near the
+            page end. On mobile/tablet it takes the below-hero strip's place instead (that strip is
+            dropped there — the between-sections strips already cover mobile). */}
         <div className="my-6">
-          <AdSlot slotKey="HOME_BELOW_HERO" />
+          <div className="hidden lg:block">
+            <AdSlot slotKey="HOME_BELOW_HERO" withHouseAd />
+          </div>
+          <div className="lg:hidden">
+            <AdSlot slotKey="SIDEBAR_TOP" withHouseAd />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_300px]">
-          <div>
+          <div className="min-w-0">
             {/* Latest news */}
             <section className="mb-10">
               <SectionHeading title="ताज़ा खबरें" href="/latest" icon="🕐" />
@@ -127,7 +136,7 @@ export default async function HomePage() {
             </section>
 
             <div className="my-6">
-              <AdSlot slotKey="HOME_BETWEEN_SECTIONS" />
+              <AdSlot slotKey="HOME_BETWEEN_SECTIONS" withHouseAd />
             </div>
 
             {/* Category rails */}
@@ -145,7 +154,7 @@ export default async function HomePage() {
                   </section>
                   {idx % 2 === 1 && (
                     <div className="my-6">
-                      <AdSlot slotKey="HOME_BETWEEN_SECTIONS" />
+                      <AdSlot slotKey="HOME_BETWEEN_SECTIONS" withHouseAd />
                     </div>
                   )}
                 </div>
@@ -154,8 +163,10 @@ export default async function HomePage() {
           </div>
 
           {/* Sidebar */}
-          <aside className="space-y-6">
-            <AdSlot slotKey="SIDEBAR_TOP" />
+          <aside className="min-w-0 space-y-6">
+            <div className="hidden lg:block">
+              <AdSlot slotKey="SIDEBAR_TOP" withHouseAd />
+            </div>
             <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
               <SectionHeading title="सबसे ज़्यादा पढ़ी गई" href="/latest" accent="bg-amber-500" icon="🔥" />
               <ol className="space-y-3">
@@ -174,7 +185,7 @@ export default async function HomePage() {
                         </div>
                       ) : null}
                       <span className="line-clamp-2 text-sm font-semibold text-neutral-800 group-hover:text-red-700">
-                        {a.hindiTitle}
+                        {cleanText(a.hindiTitle)}
                       </span>
                     </Link>
                   </li>
@@ -217,7 +228,7 @@ export default async function HomePage() {
         </section>
 
         <div className="my-6">
-          <AdSlot slotKey="FOOTER_TOP" />
+          <AdSlot slotKey="FOOTER_TOP" withHouseAd />
         </div>
       </div>
     </div>

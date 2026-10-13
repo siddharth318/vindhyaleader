@@ -121,6 +121,7 @@ async function main() {
     ["CATEGORY_TOP", "श्रेणी पेज टॉप"],
     ["CATEGORY_IN_GRID", "श्रेणी ग्रिड में"],
     ["FOOTER_TOP", "फुटर के ऊपर"],
+    ["ARTICLE_POPUP", "आर्टिकल पॉप-अप (5 सेकंड बाद)"],
   ] as const;
 
   const slotIds: Record<string, string> = {};

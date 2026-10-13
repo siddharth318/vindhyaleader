@@ -5,9 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
 import AdSlot from "@/components/ads/AdSlot";
+import AdPopup from "@/components/ads/AdPopup";
+import { getActiveAdForSlot } from "@/lib/data/ads";
 import { getArticleBySlug, getRelatedArticles } from "@/lib/data/articles";
 import { prisma } from "@/lib/prisma";
-import { sanitizeArticleHtml } from "@/lib/sanitize";
+import { cleanText, sanitizeArticleHtml } from "@/lib/sanitize";
 import { removeFirstImageByUrl } from "@/lib/article-images";
 import {
   DEFAULT_OG_IMAGE,
@@ -103,7 +105,10 @@ export default async function ArticlePage({ params }: Props) {
   const { category: categorySlug, slug } = await params;
   const article = await resolveArticle(categorySlug, slug);
 
-  const related = await getRelatedArticles(article.categoryId, article.id, 4);
+  const [related, popupAd] = await Promise.all([
+    getRelatedArticles(article.categoryId, article.id, 4),
+    getActiveAdForSlot("ARTICLE_POPUP").catch(() => null),
+  ]);
   const url = `${siteUrl}/${article.category.slug}/${article.slug}`;
   // Prefer the region the article is actually filed under, then any other detected one.
   const places = detectRegions({
@@ -172,6 +177,9 @@ export default async function ArticlePage({ params }: Props) {
   return (
     <article className="mx-auto max-w-3xl px-4 py-6">
       <ViewTracker articleId={article.id} />
+      {popupAd?.codeType === "IMAGE" && popupAd.imageUrl && (
+        <AdPopup imageUrl={popupAd.imageUrl} linkUrl={popupAd.linkUrl} name={popupAd.name} />
+      )}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -187,10 +195,10 @@ export default async function ArticlePage({ params }: Props) {
       <span className="mb-2 inline-block rounded bg-red-700 px-2 py-0.5 text-xs font-bold text-white">
         {article.category.hindiName}
       </span>
-      <h1 className="mb-3 text-2xl font-black leading-tight text-neutral-900 md:text-3xl">
-        {article.hindiTitle}
+      <h1 className="mb-3 text-2xl font-black leading-tight text-neutral-900 [overflow-wrap:anywhere] md:text-3xl">
+        {cleanText(article.hindiTitle)}
       </h1>
-      {article.excerpt && <p className="mb-3 text-lg text-neutral-600">{article.excerpt}</p>}
+      {article.excerpt && <p className="mb-3 text-lg text-neutral-600">{cleanText(article.excerpt)}</p>}
 
       <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-neutral-500">
         <span>
@@ -229,7 +237,7 @@ export default async function ArticlePage({ params }: Props) {
       )}
 
       <div
-        className="prose prose-neutral max-w-none prose-headings:font-bold prose-a:text-red-700"
+        className="article-body prose prose-neutral max-w-none prose-headings:font-bold prose-a:text-red-700"
         dangerouslySetInnerHTML={{ __html: bodyForRender }}
       />
 

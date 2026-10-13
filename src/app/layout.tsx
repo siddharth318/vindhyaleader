@@ -129,7 +129,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             </Script>
           </>
         )}
-        <AdSlot slotKey="HEADER_TOP_LEADERBOARD" label="विज्ञापन" />
+        <AdSlot slotKey="HEADER_TOP_LEADERBOARD" withHouseAd />
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />

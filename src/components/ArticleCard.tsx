@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { categoryAccent } from "@/lib/categoryColors";
+import { cleanText } from "@/lib/sanitize";
 
 export type ArticleCardData = {
   slug: string;
@@ -72,12 +73,12 @@ function HeroCard({ article }: { article: ArticleCardData }) {
           {article.isTrending && <Badge tone="amber">ट्रेंडिंग</Badge>}
         </div>
         <Link href={href} className="pointer-events-auto">
-          <h2 className="text-2xl font-black leading-tight text-white drop-shadow-sm md:text-4xl md:leading-tight">
-            {article.hindiTitle}
+          <h2 className="text-2xl font-black [overflow-wrap:anywhere] leading-tight text-white drop-shadow-sm md:text-4xl md:leading-tight">
+            {cleanText(article.hindiTitle)}
           </h2>
         </Link>
         {article.excerpt && (
-          <p className="hidden max-w-2xl text-sm text-neutral-200 md:line-clamp-2 md:block">{article.excerpt}</p>
+          <p className="hidden max-w-2xl text-sm text-neutral-200 md:line-clamp-2 md:block">{cleanText(article.excerpt)}</p>
         )}
         <div className="flex items-center gap-2 text-xs font-medium text-neutral-300">
           {article.location && <span>📍 {article.location}</span>}
@@ -115,8 +116,8 @@ function StripCard({ article }: { article: ArticleCardData }) {
           {article.category.hindiName}
         </span>
         <Link href={href}>
-          <h3 className="line-clamp-2 text-sm font-bold leading-snug text-neutral-900 group-hover:text-red-700">
-            {article.hindiTitle}
+          <h3 className="line-clamp-2 text-sm [overflow-wrap:anywhere] font-bold leading-snug text-neutral-900 group-hover:text-red-700">
+            {cleanText(article.hindiTitle)}
           </h3>
         </Link>
         <time className="text-[11px] text-neutral-400">{formatDate(article.publishedAt)}</time>
@@ -160,8 +161,8 @@ function GridCard({ article, dense }: { article: ArticleCardData; dense?: boolea
           <time className="text-neutral-400">{formatDate(article.publishedAt)}</time>
         </div>
         <Link href={href}>
-          <h3 className={`font-bold leading-snug text-neutral-900 group-hover:text-red-700 ${dense ? "text-sm" : "text-base"}`}>
-            {article.hindiTitle}
+          <h3 className={`font-bold leading-snug [overflow-wrap:anywhere] text-neutral-900 group-hover:text-red-700 ${dense ? "text-sm" : "text-base"}`}>
+            {cleanText(article.hindiTitle)}
           </h3>
         </Link>
       </div>
