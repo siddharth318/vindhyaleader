@@ -36,10 +36,19 @@ jobs:
         npm run build --if-present
         npm run test --if-present
 
+    # Ship the ready-to-run app: built here, so App Service must NOT build/npm-install again
+    # (app setting SCM_DO_BUILD_DURING_DEPLOYMENT=false, startup command "npm start").
+    # Re-installing on the server took 13–50 min per deploy and sometimes failed outright.
+    - name: Package app
+      run: |
+        npm prune --omit=dev
+        zip -qry deploy.zip . -x '.git/*' '.github/*' '.next/cache/*' 'ad-creatives/*'
+        ls -lh deploy.zip
+
     - name: 'Deploy to Azure Web App'
       uses: azure/webapps-deploy@v2
-      with: 
+      with:
         app-name: 'vindhyaleader-app'
         slot-name: 'production'
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_1a3a83f109534afaa42b023557c5fe48 }}
-        package: .
+        package: deploy.zip
