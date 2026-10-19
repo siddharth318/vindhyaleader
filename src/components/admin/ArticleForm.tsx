@@ -50,6 +50,7 @@ export default function ArticleForm({
       (article?.featuredImageId ? (media.find((m) => m.id === article.featuredImageId)?.url ?? null) : null)
   );
   const [coverUploading, setCoverUploading] = useState(false);
+  const [videoUploading, setVideoUploading] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
 
   const handleImageUploaded = (mediaId: string, url: string) => {
@@ -98,7 +99,17 @@ export default function ArticleForm({
   };
 
   return (
-    <form action={action} className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+    <form
+      action={action}
+      // A video still uploading isn't in the body yet — saving now would silently lose it.
+      onSubmit={(e) => {
+        if (videoUploading) {
+          e.preventDefault();
+          window.alert("वीडियो अभी अपलोड हो रहा है — पूरा होने तक रुकें, फिर खबर सहेजें।");
+        }
+      }}
+      className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]"
+    >
       <div className="space-y-4">
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
           <label className="mb-1 block text-sm font-medium text-neutral-700">हिंदी शीर्षक *</label>
@@ -131,7 +142,12 @@ export default function ArticleForm({
 
         <div className="rounded-lg border border-neutral-200 bg-white p-4">
           <label className="mb-2 block text-sm font-medium text-neutral-700">आर्टिकल बॉडी *</label>
-          <RichTextEditor name="bodyHtml" initialContent={article?.bodyHtml} onImageUploaded={handleImageUploaded} />
+          <RichTextEditor
+            name="bodyHtml"
+            initialContent={article?.bodyHtml}
+            onImageUploaded={handleImageUploaded}
+            onVideoUploadingChange={setVideoUploading}
+          />
         </div>
 
         <div className="rounded-lg border border-neutral-200 bg-white p-4">

@@ -1,4 +1,5 @@
 import sanitizeHtml from "sanitize-html";
+import { isFacebookPluginUrl, isOurVideoUrl } from "@/lib/video";
 
 /**
  * Allow-list sanitizer for admin-authored article body HTML (from the Tiptap editor).
@@ -9,16 +10,25 @@ export function sanitizeArticleHtml(dirty: string): string {
     allowedTags: [
       "p", "br", "strong", "em", "u", "s", "blockquote", "ul", "ol", "li",
       "h2", "h3", "h4", "a", "img", "figure", "figcaption", "hr", "table",
-      "thead", "tbody", "tr", "th", "td", "iframe", "span",
+      "thead", "tbody", "tr", "th", "td", "iframe", "span", "video",
     ],
     allowedAttributes: {
       a: ["href", "target", "rel"],
       img: ["src", "alt", "width", "height"],
-      iframe: ["src", "width", "height", "allow", "allowfullscreen", "frameborder"],
+      iframe: ["src", "width", "height", "allow", "allowfullscreen", "frameborder", "loading", "title", "scrolling"],
+      video: ["src", "controls", "preload", "playsinline", "width", "height"],
       span: ["class"],
       "*": ["class"],
     },
-    allowedIframeHostnames: ["www.youtube.com", "youtube.com", "player.vimeo.com"],
+    allowedIframeHostnames: ["www.youtube.com", "youtube.com", "player.vimeo.com", "www.facebook.com"],
+    // Videos: only files we host ourselves (our blob storage / local uploads) may be played, and the
+    // only Facebook iframe allowed is its video player. Anything else is dropped entirely.
+    exclusiveFilter: (frame) => {
+      const src = frame.attribs.src ?? "";
+      if (frame.tag === "video") return !isOurVideoUrl(src);
+      if (frame.tag === "iframe") return !src || (/facebook\.com/i.test(src) && !isFacebookPluginUrl(src));
+      return false;
+    },
     // Same non-breaking-space problem as cleanText(), inside body paragraphs.
     textFilter: (text) => text.replace(ODD_SPACES, " ").replace(ZERO_WIDTH, ""),
     transformTags: {

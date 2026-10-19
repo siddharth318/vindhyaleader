@@ -1,6 +1,8 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
-export async function getNavCategories() {
+// cache(): the header and the homepage both ask for the menu in the same request — share one query.
+export const getNavCategories = cache(async () => {
   return prisma.category.findMany({
     where: { active: true, parentId: null },
     orderBy: { displayOrder: "asc" },
@@ -11,7 +13,7 @@ export async function getNavCategories() {
       },
     },
   });
-}
+});
 
 export async function getAllActiveCategories() {
   return prisma.category.findMany({

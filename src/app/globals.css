@@ -119,3 +119,31 @@ body {
     animation: none;
   }
 }
+
+/* Videos inside articles: our own uploaded <video>, and Facebook's player iframe. */
+.article-body video {
+  display: block;
+  width: 100%;
+  max-height: 75vh;
+  margin: 1.25rem 0;
+  border-radius: 0.75rem;
+  background: #000;
+}
+.article-body iframe.video-embed {
+  display: block;
+  width: 100%;
+  margin: 1.25rem auto;
+  border: 0;
+  border-radius: 0.75rem;
+  background: #000;
+}
+.article-body iframe.fb-landscape {
+  aspect-ratio: 16 / 9;
+  height: auto;
+}
+/* Reels are vertical: a tall frame, capped so it doesn't fill a whole desktop screen. */
+.article-body iframe.fb-portrait {
+  aspect-ratio: 9 / 16;
+  height: auto;
+  max-width: 360px;
+}
