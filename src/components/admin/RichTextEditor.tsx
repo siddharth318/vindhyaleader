@@ -11,6 +11,7 @@ import { uploadEditorImageAction } from "@/lib/actions/media-actions";
 import { FacebookVideo, Video } from "./tiptap-video";
 import { parseFacebookVideo, VIDEO_MAX_BYTES } from "@/lib/video";
 import { uploadVideo } from "@/lib/video-upload-client";
+import { resolveFacebookVideoAction } from "@/lib/actions/video-actions";
 
 const mb = (bytes: number) => (bytes / 1024 / 1024).toFixed(1);
 
@@ -66,6 +67,7 @@ export default function RichTextEditor({
   const [fbOpen, setFbOpen] = useState(false);
   const [fbValue, setFbValue] = useState("");
   const [fbError, setFbError] = useState<string | null>(null);
+  const [fbChecking, setFbChecking] = useState(false);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const uploadAbort = useRef<AbortController | null>(null);
   const uploading = upload !== null;
@@ -190,15 +192,28 @@ export default function RichTextEditor({
     }
   }
 
-  function addFacebookVideo() {
-    const parsed = parseFacebookVideo(fbValue);
-    if (!parsed) {
-      setFbError("यह Facebook वीडियो का लिंक नहीं लग रहा। Facebook पर वीडियो खोलकर उसका लिंक (URL) कॉपी करके यहाँ पेस्ट करें।");
+  async function addFacebookVideo() {
+    if (fbChecking || !fbValue.trim()) return;
+    setFbError(null);
+    // Direct video links resolve instantly; share links ("Share → Copy link") go via the server,
+    // which follows them to the real video (Facebook's player can't play share links).
+    let result = parseFacebookVideo(fbValue) as Awaited<ReturnType<typeof resolveFacebookVideoAction>> | null;
+    if (!result) {
+      setFbChecking(true);
+      try {
+        result = await resolveFacebookVideoAction(fbValue);
+      } catch {
+        result = { error: "Facebook लिंक की जाँच नहीं हो सकी — कृपया दोबारा कोशिश करें।" };
+      } finally {
+        setFbChecking(false);
+      }
+    }
+    if ("error" in result) {
+      setFbError(result.error);
       return;
     }
-    insertBlock({ type: "facebookVideo", attrs: { src: parsed.src, portrait: parsed.portrait } });
+    insertBlock({ type: "facebookVideo", attrs: { src: result.src, portrait: result.portrait } });
     setFbValue("");
-    setFbError(null);
     setFbOpen(false);
   }
 
@@ -279,9 +294,10 @@ export default function RichTextEditor({
               <button
                 type="button"
                 onClick={addFacebookVideo}
-                className="rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800"
+                disabled={fbChecking}
+                className="rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 disabled:opacity-60"
               >
-                जोड़ें
+                {fbChecking ? "जाँच हो रही है…" : "जोड़ें"}
               </button>
               <button
                 type="button"

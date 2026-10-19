@@ -58,6 +58,10 @@ const FB_HOSTS = new Set([
   "fb.watch",
 ]);
 
+export function isFacebookHost(hostname: string): boolean {
+  return FB_HOSTS.has(hostname.toLowerCase());
+}
+
 /** True for a Facebook video-plugin iframe URL (the only Facebook iframe the sanitizer allows). */
 export function isFacebookPluginUrl(src: string): boolean {
   try {
@@ -81,16 +85,14 @@ function pluginUrl(canonical: string, portrait: boolean): string {
   );
 }
 
-/** Canonicalise a Facebook video URL; null when it isn't a link to a single video/reel. */
+/**
+ * Canonicalise a direct Facebook video URL; null when it isn't a link to a single video/reel.
+ * Share links (facebook.com/share/…, fb.watch/…) are NOT direct: Facebook's player shows "Video
+ * unavailable" for them, so they must be followed to the real video first (see facebookShareLink).
+ */
 function canonicalFacebookVideo(url: URL): { canonical: string; portrait: boolean } | null {
-  const host = url.hostname.toLowerCase();
-  if (host === "fb.watch") {
-    const code = url.pathname.split("/").filter(Boolean)[0];
-    return code && /^[\w-]+$/.test(code) ? { canonical: `https://fb.watch/${code}/`, portrait: false } : null;
-  }
-
-  const path = url.pathname.replace(/\/+$/, "");
-  const parts = path.split("/").filter(Boolean);
+  if (url.hostname.toLowerCase() === "fb.watch") return null;
+  const parts = url.pathname.replace(/\/+$/, "").split("/").filter(Boolean);
 
   // https://www.facebook.com/watch/?v=123   (also /watch?v=123)
   if (parts[0] === "watch") {
@@ -106,10 +108,6 @@ function canonicalFacebookVideo(url: URL): { canonical: string; portrait: boolea
   if ((parts[0] === "reel" || parts[0] === "reels") && parts[1] && /^\d+$/.test(parts[1])) {
     return { canonical: `https://www.facebook.com/reel/${parts[1]}`, portrait: true };
   }
-  // https://www.facebook.com/share/v/AbC123/  (video)  |  /share/r/AbC123/  (reel)
-  if (parts[0] === "share" && (parts[1] === "v" || parts[1] === "r") && parts[2] && /^[\w-]+$/.test(parts[2])) {
-    return { canonical: `https://www.facebook.com/share/${parts[1]}/${parts[2]}/`, portrait: parts[1] === "r" };
-  }
   // https://www.facebook.com/PageName/videos/123/  (also /PageName/videos/some-title/123/  and /videos/123/)
   const vi = parts.indexOf("videos");
   if (vi !== -1 && vi < parts.length - 1 && parts.slice(vi + 1).every((p) => /^[\w%.-]+$/.test(p))) {
@@ -121,16 +119,11 @@ function canonicalFacebookVideo(url: URL): { canonical: string; portrait: boolea
   return null;
 }
 
-/**
- * Turns whatever the editor pasted — a Facebook video link, a reel link, an fb.watch short link,
- * or Facebook's own "Embed" <iframe> code — into the iframe URL used to show it. Null if it isn't
- * a recognisable Facebook video.
- */
-export function parseFacebookVideo(input: string): FacebookEmbed | null {
-  return parse(input.trim(), true);
-}
+type Classified = { kind: "video"; embed: FacebookEmbed } | { kind: "share"; url: string } | null;
 
-function parse(text: string, allowPlugin: boolean): FacebookEmbed | null {
+/** What a pasted Facebook link/embed code is: a direct video, a share link to follow, or neither. */
+function classify(text: string, allowPlugin = true): Classified {
+  text = text.trim();
   const iframeSrc = text.match(/<iframe[^>]*\ssrc\s*=\s*["']([^"']+)["']/i)?.[1];
   if (iframeSrc) text = iframeSrc.replace(/&amp;/g, "&");
   if (!text) return null;
@@ -146,14 +139,41 @@ function parse(text: string, allowPlugin: boolean): FacebookEmbed | null {
     }
   }
   if (url.protocol !== "https:" && url.protocol !== "http:") return null;
-  if (!FB_HOSTS.has(url.hostname.toLowerCase())) return null;
+  const host = url.hostname.toLowerCase();
+  if (!FB_HOSTS.has(host)) return null;
 
   // The embed code from Facebook's own Share → Embed dialog: unwrap its href=<video URL>.
   if (url.pathname.replace(/\/+$/, "") === "/plugins/video.php") {
     const href = url.searchParams.get("href");
-    return allowPlugin && href ? parse(href, false) : null;
+    return allowPlugin && href ? classify(href, false) : null;
   }
 
+  // Share links: fb.watch/<code>, facebook.com/share/v/<code>, /share/r/<code>, /share/<code>
+  const parts = url.pathname.split("/").filter(Boolean);
+  const isShare =
+    host === "fb.watch"
+      ? parts.length === 1 && /^[\w-]+$/.test(parts[0])
+      : parts[0] === "share" && parts.length >= 2 && parts.length <= 3 && parts.every((p) => /^[\w-]+$/.test(p));
+  if (isShare) return { kind: "share", url: `https://${host === "fb.watch" ? "fb.watch" : "www.facebook.com"}/${parts.join("/")}/` };
+
   const found = canonicalFacebookVideo(url);
-  return found ? { src: pluginUrl(found.canonical, found.portrait), portrait: found.portrait } : null;
+  return found ? { kind: "video", embed: { src: pluginUrl(found.canonical, found.portrait), portrait: found.portrait } } : null;
+}
+
+/**
+ * Turns a direct Facebook video/reel link — or Facebook's own "Embed" <iframe> code for one — into
+ * the iframe URL used to show it. Null for anything else, including share links (see below).
+ */
+export function parseFacebookVideo(input: string): FacebookEmbed | null {
+  const c = classify(input);
+  return c?.kind === "video" ? c.embed : null;
+}
+
+/**
+ * The normalised share link if `input` is a Facebook share link (what "Share → Copy link" gives,
+ * or fb.watch). These must be followed on the server (resolveFacebookShare) before embedding.
+ */
+export function facebookShareLink(input: string): string | null {
+  const c = classify(input);
+  return c?.kind === "share" ? c.url : null;
 }

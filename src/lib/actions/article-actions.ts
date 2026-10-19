@@ -8,6 +8,7 @@ import { slugify, uniqueSuffix } from "@/lib/slug";
 import { cleanText, sanitizeArticleHtml } from "@/lib/sanitize";
 import { firstBodyImageUrl } from "@/lib/article-images";
 import { rehostRemoteImages } from "@/lib/media-ingest";
+import { fixFacebookShareEmbeds } from "@/lib/facebook-resolve";
 import type { ArticleStatus } from "@prisma/client";
 
 async function requireReporter() {
@@ -126,9 +127,9 @@ export async function createArticleAction(formData: FormData) {
   const status = String(formData.get("status") ?? "DRAFT") as ArticleStatus;
   // Rehost any external/hot-linked images into our own storage first, so an image
   // pasted into the body becomes a real Media record (and can be promoted to cover).
-  const bodyHtml = await rehostRemoteImages(
-    sanitizeArticleHtml(String(formData.get("bodyHtml") ?? "")),
-    session.userId
+  // Facebook share-link embeds can't play; swap them for the real video they point to.
+  const bodyHtml = await fixFacebookShareEmbeds(
+    await rehostRemoteImages(sanitizeArticleHtml(String(formData.get("bodyHtml") ?? "")), session.userId)
   );
   const featuredImageId = await resolveFeaturedImageId(
     bodyHtml,
@@ -194,9 +195,9 @@ export async function updateArticleAction(articleId: string, formData: FormData)
   const title = cleanText(String(formData.get("title") ?? "")) || hindiTitle;
   const categoryId = String(formData.get("categoryId") ?? "");
   const requestedStatus = String(formData.get("status") ?? existing.status) as ArticleStatus;
-  const bodyHtml = await rehostRemoteImages(
-    sanitizeArticleHtml(String(formData.get("bodyHtml") ?? "")),
-    session.userId
+  // Facebook share-link embeds can't play; swap them for the real video they point to.
+  const bodyHtml = await fixFacebookShareEmbeds(
+    await rehostRemoteImages(sanitizeArticleHtml(String(formData.get("bodyHtml") ?? "")), session.userId)
   );
   const featuredImageId = await resolveFeaturedImageId(
     bodyHtml,
