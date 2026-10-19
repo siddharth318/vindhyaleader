@@ -82,6 +82,18 @@ async function main() {
     },
   });
 
+  const editor = await prisma.user.upsert({
+    where: { email: "brijesh.pathak@vindhyaleader.com" },
+    update: {},
+    create: {
+      name: "बृजेश पाठक",
+      email: "brijesh.pathak@vindhyaleader.com",
+      passwordHash,
+      role: "EDITOR",
+      bio: "वरिष्ठ संपादक — खबरें बनाता/संपादित करता है; प्रकाशन हेतु सुपर एडमिन की स्वीकृति आवश्यक है।",
+    },
+  });
+
   await prisma.user.upsert({
     where: { email: "reporter@vindhyaleader.com" },
     update: {},
@@ -194,7 +206,7 @@ async function main() {
           const contentType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
           const url = await saveUpload(buf, filename, contentType);
           const media = await prisma.media.create({
-            data: { filename, url, altText: hindiTitle, uploadedById: superAdmin.id },
+            data: { filename, url, altText: hindiTitle, uploadedById: editor.id },
           });
           mediaId = media.id;
         }
@@ -213,7 +225,7 @@ async function main() {
         excerpt,
         bodyHtml: `<p>${excerpt}</p><p>(यह सामग्री मूल vindhyaleader.com से माइग्रेट की गई है — व्यवस्थापक इसे संपादित कर सकते हैं।)</p>`,
         categoryId,
-        authorId: superAdmin.id,
+        authorId: editor.id,
         featuredImageId: mediaId,
         status: "PUBLISHED",
         publishedAt: item.pub ? new Date(item.pub) : new Date(),

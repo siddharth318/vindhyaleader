@@ -20,6 +20,18 @@ async function main() {
     },
   });
 
+  const editor = await prisma.user.upsert({
+    where: { email: "brijesh.pathak@vindhyaleader.com" },
+    update: {},
+    create: {
+      name: "बृजेश पाठक",
+      email: "brijesh.pathak@vindhyaleader.com",
+      passwordHash,
+      role: "EDITOR",
+      bio: "वरिष्ठ संपादक — खबरें बनाता/संपादित करता है; प्रकाशन हेतु सुपर एडमिन की स्वीकृति आवश्यक है।",
+    },
+  });
+
   await prisma.user.upsert({
     where: { email: "reporter@vindhyaleader.com" },
     update: {},
@@ -136,7 +148,7 @@ async function main() {
       location: "सोनभद्र",
       isFeatured: true,
       isBreaking: true,
-      authorId: superAdmin.id,
+      authorId: editor.id,
     },
     {
       hindiTitle: "उत्तर प्रदेश सरकार ने शुरू की नई रोजगार योजना, लाखों युवाओं को मिलेगा लाभ",
@@ -145,7 +157,7 @@ async function main() {
       excerpt: "योजना के तहत प्रशिक्षण के साथ वित्तीय सहायता भी दी जाएगी।",
       location: "लखनऊ",
       isFeatured: true,
-      authorId: superAdmin.id,
+      authorId: editor.id,
     },
     {
       hindiTitle: "रॉबर्ट्सगंज में चोरी की बड़ी वारदात, पुलिस ने शुरू की जांच",
@@ -163,7 +175,7 @@ async function main() {
       excerpt: "आखिरी गेंद तक चले मुकाबले में भारतीय टीम ने जीत दर्ज की।",
       location: "नई दिल्ली",
       isTrending: true,
-      authorId: superAdmin.id,
+      authorId: editor.id,
     },
     {
       hindiTitle: "मिर्जापुर में डिजिटल शिक्षा को बढ़ावा, स्कूलों में लगे स्मार्ट क्लासरूम",
@@ -180,7 +192,7 @@ async function main() {
       excerpt: "गंगा घाट पर आयोजित महोत्सव में शास्त्रीय संगीत और नृत्य की प्रस्तुतियां हुईं।",
       location: "वाराणसी",
       isEditorsPick: true,
-      authorId: superAdmin.id,
+      authorId: editor.id,
     },
     {
       hindiTitle: "बॉलीवुड की नई फिल्म ने बॉक्स ऑफिस पर मचाई धूम",
@@ -188,7 +200,7 @@ async function main() {
       categorySlug: "entertainment",
       excerpt: "पहले ही सप्ताह में फिल्म ने शानदार कमाई की।",
       location: "मुंबई",
-      authorId: superAdmin.id,
+      authorId: editor.id,
     },
     {
       hindiTitle: "आज का राशिफल: जानें किन राशियों के लिए रहेगा शुभ दिन",
@@ -245,6 +257,7 @@ async function main() {
 
   console.log("Seed complete.");
   console.log("Super Admin (approves & publishes): rajendra.dwivedi@vindhyaleader.com");
+  console.log("Editor (creates, sends for review): brijesh.pathak@vindhyaleader.com");
   console.log("Reporter: reporter@vindhyaleader.com");
   console.log("Password (all): Passw0rd!123");
 }
