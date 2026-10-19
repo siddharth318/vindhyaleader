@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import {
   createAdSlotAction,
-  createAdvertisementAction,
   toggleAdvertisementAction,
   deleteAdvertisementAction,
 } from "@/lib/actions/ad-actions";
 import SubmitButton from "@/components/admin/SubmitButton";
+import AdCreateForm from "@/components/admin/AdCreateForm";
 
 export const metadata = { title: "विज्ञापन प्रबंधन" };
 
@@ -20,9 +20,9 @@ export default async function AdsPage() {
       <div>
         <h1 className="mb-4 text-xl font-bold">विज्ञापन स्लॉट</h1>
         <form action={createAdSlotAction} className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-neutral-200 bg-white p-4">
-          <input name="key" placeholder="SLOT_KEY (जैसे HOME_HERO_TOP)" required className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-          <input name="label" placeholder="लेबल" required className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-          <input name="description" placeholder="विवरण (वैकल्पिक)" className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          <input name="key" placeholder="SLOT_KEY (जैसे HOME_HERO_TOP)" required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm sm:w-auto" />
+          <input name="label" placeholder="लेबल" required className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm sm:w-auto" />
+          <input name="description" placeholder="विवरण (वैकल्पिक)" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm sm:w-auto" />
           <SubmitButton
             pendingText="जोड़ा जा रहा है…"
             className="inline-flex items-center justify-center gap-2 rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
@@ -41,45 +41,52 @@ export default async function AdsPage() {
 
       <div>
         <h2 className="mb-4 text-xl font-bold">विज्ञापन जोड़ें</h2>
-        <form action={createAdvertisementAction} className="grid grid-cols-1 gap-3 rounded-lg border border-neutral-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
-          <input name="name" placeholder="विज्ञापन नाम *" required className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-          <select name="slotId" required className="rounded-md border border-neutral-300 px-3 py-2 text-sm">
-            <option value="">-- स्लॉट चुनें --</option>
-            {slots.map((s) => (
-              <option key={s.id} value={s.id}>{s.key}</option>
-            ))}
-          </select>
-          <select name="device" defaultValue="ALL" className="rounded-md border border-neutral-300 px-3 py-2 text-sm">
-            <option value="ALL">सभी डिवाइस</option>
-            <option value="DESKTOP">डेस्कटॉप</option>
-            <option value="TABLET">टैबलेट</option>
-            <option value="MOBILE">मोबाइल</option>
-          </select>
-          <select name="codeType" defaultValue="IMAGE" className="rounded-md border border-neutral-300 px-3 py-2 text-sm">
-            <option value="IMAGE">इमेज बैनर</option>
-            <option value="ADSENSE">Google AdSense कोड</option>
-            <option value="GPT">Google Ad Manager (GPT) कोड</option>
-            <option value="HTML">कस्टम HTML/JS</option>
-          </select>
-          <input name="imageUrl" placeholder="इमेज URL (इमेज प्रकार हेतु)" className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-          <input name="linkUrl" placeholder="क्लिक लिंक URL" className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-          <textarea name="code" placeholder="AdSense/GPT/HTML कोड (वैकल्पिक)" rows={3} className="rounded-md border border-neutral-300 px-3 py-2 text-sm sm:col-span-2 lg:col-span-3" />
-          <label className="text-sm text-neutral-600">शुरू तारीख<input type="date" name="startDate" className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" /></label>
-          <label className="text-sm text-neutral-600">अंत तारीख<input type="date" name="endDate" className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" /></label>
-          <label className="text-sm text-neutral-600">प्राथमिकता<input type="number" name="priority" defaultValue={0} className="mt-1 block w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" /></label>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked /> सक्रिय</label>
-          <SubmitButton
-            pendingText="जोड़ा जा रहा है…"
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-70 sm:col-span-2 lg:col-span-1"
-          >
-            + विज्ञापन जोड़ें
-          </SubmitButton>
-        </form>
+        <AdCreateForm slots={slots.map((s) => ({ id: s.id, key: s.key }))} />
       </div>
 
       <div>
         <h2 className="mb-4 text-xl font-bold">सभी विज्ञापन</h2>
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+
+        {/* Phones: one card per ad (a 7-column table is unusable at 375px). */}
+        <div className="space-y-3 md:hidden">
+          {ads.map((ad) => (
+            <div key={ad.id} className="rounded-lg border border-neutral-200 bg-white p-3">
+              <div className="flex items-start gap-3">
+                {ad.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={ad.imageUrl} alt="" className="h-12 w-20 shrink-0 rounded object-cover ring-1 ring-black/10" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-sm font-semibold leading-snug">{ad.name}</p>
+                  <p className="mt-0.5 break-all text-xs text-neutral-500">{ad.slot.key}</p>
+                  <p className="mt-0.5 text-xs text-neutral-500">
+                    {ad.device} · {ad.codeType} · प्राथमिकता {ad.priority}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-2 flex items-center justify-between border-t border-neutral-100 pt-2 text-sm">
+                <form action={toggleAdvertisementAction.bind(null, ad.id, !ad.active)}>
+                  <SubmitButton
+                    className={`inline-flex items-center gap-1.5 py-1 disabled:opacity-50 ${ad.active ? "text-green-700" : "text-neutral-400"}`}
+                  >
+                    {ad.active ? "✅ सक्रिय" : "❌ निष्क्रिय"}
+                  </SubmitButton>
+                </form>
+                <form action={deleteAdvertisementAction.bind(null, ad.id)}>
+                  <SubmitButton
+                    confirm="इस विज्ञापन को हटाना निश्चित है?"
+                    className="inline-flex items-center gap-1.5 py-1 text-red-700 hover:underline disabled:opacity-50"
+                  >
+                    हटाएँ
+                  </SubmitButton>
+                </form>
+              </div>
+            </div>
+          ))}
+          {ads.length === 0 && <p className="py-6 text-center text-neutral-400">अभी कोई विज्ञापन नहीं है।</p>}
+        </div>
+
+        <div className="hidden overflow-x-auto rounded-lg border border-neutral-200 bg-white md:block">
           <table className="w-full text-left text-sm">
             <thead className="bg-neutral-50 text-neutral-600">
               <tr>
@@ -95,7 +102,15 @@ export default async function AdsPage() {
             <tbody className="divide-y divide-neutral-100">
               {ads.map((ad) => (
                 <tr key={ad.id}>
-                  <td className="px-4 py-2 font-medium">{ad.name}</td>
+                  <td className="px-4 py-2 font-medium">
+                    <div className="flex items-center gap-2">
+                      {ad.imageUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={ad.imageUrl} alt="" className="h-8 w-14 shrink-0 rounded object-cover ring-1 ring-black/10" />
+                      )}
+                      <span>{ad.name}</span>
+                    </div>
+                  </td>
                   <td className="px-4 py-2 text-neutral-500">{ad.slot.key}</td>
                   <td className="px-4 py-2 text-neutral-500">{ad.device}</td>
                   <td className="px-4 py-2 text-neutral-500">{ad.codeType}</td>

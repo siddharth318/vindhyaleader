@@ -13,11 +13,14 @@ export async function processAndStoreImage(
   buffer: Buffer,
   uploadedById: string,
   altText?: string | null,
-  caption?: string | null
+  caption?: string | null,
+  opts: { maxWidth?: number; quality?: number } = {}
 ) {
   const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
 
-  const image = sharp(buffer).rotate().resize({ width: 1600, withoutEnlargement: true }).webp({ quality: 82 });
+  // Defaults suit article photos; ad creatives pass a larger width/quality so text stays crisp.
+  const { maxWidth = 1600, quality = 82 } = opts;
+  const image = sharp(buffer).rotate().resize({ width: maxWidth, withoutEnlargement: true }).webp({ quality });
   const outputBuffer = await image.toBuffer();
   const metadata = await sharp(outputBuffer).metadata();
   const url = await saveUpload(outputBuffer, safeName, "image/webp");

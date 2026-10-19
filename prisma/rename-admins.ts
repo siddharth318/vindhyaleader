@@ -16,17 +16,8 @@ async function main() {
       bio: "प्रधान संपादक व सुपर एडमिन — सभी खबरों की अंतिम स्वीकृति एवं प्रकाशन इन्हीं के अधिकार क्षेत्र में है।",
     },
   });
-  const editor = await prisma.user.updateMany({
-    where: { email: "editor@vindhyaleader.com" },
-    data: {
-      name: "बृजेश पाठक",
-      email: "brijesh.pathak@vindhyaleader.com",
-      bio: "वरिष्ठ संपादक — खबरें बनाता/संपादित करता है; प्रकाशन हेतु सुपर एडमिन की स्वीकृति आवश्यक है।",
-    },
-  });
 
   console.log(`Super Admin rows updated: ${superAdmin.count} -> rajendra.dwivedi@vindhyaleader.com`);
-  console.log(`Editor rows updated: ${editor.count} -> brijesh.pathak@vindhyaleader.com`);
 }
 
 main()

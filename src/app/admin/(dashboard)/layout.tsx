@@ -79,7 +79,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="flex min-h-screen bg-neutral-100">
       <aside className="hidden w-56 shrink-0 flex-col bg-neutral-900 text-neutral-200 md:flex">{sidebar}</aside>
-      <div className="flex-1">
+      {/* min-w-0: a flex child won't shrink below its content's width by default, so a wide table
+          or form would stretch the whole admin page past the phone screen. */}
+      <div className="min-w-0 flex-1">
         <header className="flex items-center justify-between border-b border-neutral-200 bg-white px-4 py-3 md:hidden">
           <div className="flex items-center gap-2">
             <AdminMobileNav>{sidebar}</AdminMobileNav>

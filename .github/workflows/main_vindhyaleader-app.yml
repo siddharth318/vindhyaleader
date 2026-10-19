@@ -37,7 +37,9 @@ jobs:
         npm run test --if-present
 
     # Ship the ready-to-run app: built here, so App Service must NOT build/npm-install again
-    # (app setting SCM_DO_BUILD_DURING_DEPLOYMENT=false, startup command "npm start").
+    # (app setting SCM_DO_BUILD_DURING_DEPLOYMENT=false, startup command
+    # "node node_modules/next/dist/bin/next start" — run Next directly; the npm shortcut is not
+    # reliably present on App Service right after a ZIP deploy).
     # Re-installing on the server took 13–50 min per deploy and sometimes failed outright.
     - name: Package app
       run: |

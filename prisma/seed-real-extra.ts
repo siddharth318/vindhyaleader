@@ -53,9 +53,8 @@ async function main() {
   const raw = fs.readFileSync(path.join(process.cwd(), "scraped-extra.json"), "utf-8").replace(/^\uFEFF/, "");
   const items: Scraped[] = JSON.parse(raw);
 
-  const editor = await prisma.user.findUnique({ where: { email: "brijesh.pathak@vindhyaleader.com" } });
   const admin = await prisma.user.findUnique({ where: { email: "rajendra.dwivedi@vindhyaleader.com" } });
-  const author = editor ?? admin;
+  const author = admin;
   if (!author) throw new Error("Run `npm run db:seed` first.");
 
   for (const item of items) {

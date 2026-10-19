@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { uploadMediaAction, deleteMediaAction } from "@/lib/actions/media-actions";
 import SubmitButton from "@/components/admin/SubmitButton";
+import CopyUrlButton from "@/components/admin/CopyUrlButton";
 
 export const metadata = { title: "मीडिया लाइब्रेरी" };
 
@@ -15,22 +16,22 @@ export default async function MediaLibraryPage() {
         action={uploadMediaAction}
         className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-neutral-200 bg-white p-4"
       >
-        <div>
+        <div className="w-full sm:w-auto">
           <label className="mb-1 block text-sm font-medium text-neutral-700">फ़ाइल चुनें</label>
-          <input type="file" name="file" accept="image/jpeg,image/png,image/webp,image/gif" required className="text-sm" />
+          <input type="file" name="file" accept="image/jpeg,image/png,image/webp,image/gif" required className="block w-full text-sm" />
         </div>
-        <div>
+        <div className="w-full sm:w-auto">
           <label className="mb-1 block text-sm font-medium text-neutral-700">Alt Text</label>
-          <input name="altText" className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          <input name="altText" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
         </div>
-        <div>
+        <div className="w-full sm:w-auto">
           <label className="mb-1 block text-sm font-medium text-neutral-700">कैप्शन</label>
-          <input name="caption" className="rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          <input name="caption" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
         </div>
         <SubmitButton
           overlay
           pendingText="अपलोड हो रहा है…"
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
         >
           अपलोड करें
         </SubmitButton>
@@ -43,6 +44,7 @@ export default async function MediaLibraryPage() {
             <img src={m.url} alt={m.altText ?? m.filename} className="aspect-square w-full object-cover" />
             <div className="p-2">
               <p className="truncate text-xs text-neutral-500" title={m.url}>{m.url}</p>
+              <CopyUrlButton url={m.url} />
               <form action={deleteMediaAction.bind(null, m.id)}>
                 <SubmitButton
                   confirm="इस मीडिया को हटाना निश्चित है?"
