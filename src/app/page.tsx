@@ -10,6 +10,7 @@ import {
 import { getNavCategories } from "@/lib/data/categories";
 import { categoryAccent } from "@/lib/categoryColors";
 import { cleanText } from "@/lib/sanitize";
+import { SITE_TIME_ZONE } from "@/lib/time";
 import CategoryPillNav from "@/components/CategoryPillNav";
 import { prisma } from "@/lib/prisma";
 import { HOME_DESCRIPTION, HOME_TITLE, REGIONS, SITE_KEYWORDS, pageMetadata } from "@/lib/seo";
@@ -78,7 +79,7 @@ export default async function HomePage() {
           <p className="font-display text-xs font-bold tracking-wide md:ml-[68px] md:text-sm">
             <span className="slogan-mic mr-1" aria-hidden="true">🎙️</span>
             <span className="slogan-shimmer">आपकी अपनी आवाज़</span>
-            <span className="text-neutral-400"> — सच्ची, तेज़ और निष्पक्ष खबरें</span>
+            <span className="slogan-shimmer slogan-shimmer-white"> — सच्ची, तेज़ और निष्पक्ष खबरें</span>
           </p>
           <p className="hidden text-xs font-medium text-neutral-400 md:block">
             {new Intl.DateTimeFormat("hi-IN", {
@@ -86,6 +87,7 @@ export default async function HomePage() {
               day: "numeric",
               month: "long",
               year: "numeric",
+              timeZone: SITE_TIME_ZONE,
             }).format(new Date())}
           </p>
         </div>

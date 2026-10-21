@@ -1,3 +1,4 @@
+import { SITE_TIME_ZONE } from "@/lib/time";
 import Link from "next/link";
 import { getAnalytics } from "@/lib/data/analytics";
 import BarChart from "@/components/admin/BarChart";
@@ -11,7 +12,7 @@ function fmt(n: number) {
 
 function formatDate(date: Date | null) {
   if (!date) return "—";
-  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: SITE_TIME_ZONE }).format(date);
 }
 
 /** Bar colour by absolute view count: >100 green, 50–100 yellow, <50 red. */

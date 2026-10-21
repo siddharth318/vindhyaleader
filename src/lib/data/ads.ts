@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import type { AdDevice } from "@prisma/client";
+import { MAX_ADS_PER_SLOT } from "@/lib/ad-capacity";
 
 /**
  * All currently-active ads, newest-priority first, fetched ONCE per request.
@@ -19,10 +20,22 @@ const getActiveAds = cache(async () => {
       OR: [{ startDate: null }, { startDate: { lte: now } }],
       AND: [{ OR: [{ endDate: null }, { endDate: { gte: now } }] }],
     },
-    orderBy: { priority: "desc" },
+    // Equal priority: oldest first, so carousels show advertisers in the order they were added.
+    orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
     include: { slot: { select: { key: true } } },
   });
 });
+
+/**
+ * The image ads a carousel slot slides through for one view (DESKTOP or MOBILE): those set for that
+ * device or for ALL, highest priority first, at most MAX_ADS_PER_SLOT.
+ */
+export async function getCarouselAdsForSlot(slotKey: string, view: "DESKTOP" | "MOBILE") {
+  const ads = await getActiveAds();
+  return ads
+    .filter((a) => a.slot.key === slotKey && (a.device === view || a.device === "ALL") && a.codeType === "IMAGE" && a.imageUrl)
+    .slice(0, MAX_ADS_PER_SLOT);
+}
 
 /**
  * Resolve the highest-priority active advertisement for a slot/device.

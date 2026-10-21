@@ -6,10 +6,13 @@ import {
 } from "@/lib/actions/ad-actions";
 import SubmitButton from "@/components/admin/SubmitButton";
 import AdCreateForm from "@/components/admin/AdCreateForm";
+import { MAX_ADS_PER_SLOT } from "@/lib/ad-capacity";
 
 export const metadata = { title: "विज्ञापन प्रबंधन" };
 
-export default async function AdsPage() {
+export default async function AdsPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  // Set by toggleAdvertisementAction when switching an ad on would exceed the per-slot limit.
+  const { error } = await searchParams;
   const [slots, ads] = await Promise.all([
     prisma.adSlot.findMany({ orderBy: { key: "asc" } }),
     prisma.advertisement.findMany({ orderBy: { priority: "desc" }, include: { slot: true } }),
@@ -17,6 +20,11 @@ export default async function AdsPage() {
 
   return (
     <div className="space-y-8">
+      {error && (
+        <p role="alert" className="rounded-md bg-red-50 p-3 text-sm font-semibold text-red-800 ring-1 ring-red-200">
+          ❌ {error}
+        </p>
+      )}
       <div>
         <h1 className="mb-4 text-xl font-bold">विज्ञापन स्लॉट</h1>
         <form action={createAdSlotAction} className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-neutral-200 bg-white p-4">
@@ -45,7 +53,11 @@ export default async function AdsPage() {
       </div>
 
       <div>
-        <h2 className="mb-4 text-xl font-bold">सभी विज्ञापन</h2>
+        <h2 className="mb-1 text-xl font-bold">सभी विज्ञापन</h2>
+        <p className="mb-4 text-sm text-neutral-500">
+          हर स्लॉट में एक साथ अधिकतम {MAX_ADS_PER_SLOT} विज्ञापन चल सकते हैं — होमपेज और ऊपर की पट्टी में ये हमारे
+          &ldquo;विज्ञापन यहाँ दें&rdquo; विज्ञापन के साथ बारी-बारी से (हर एक 3 सेकंड) दिखते हैं।
+        </p>
 
         {/* Phones: one card per ad (a 7-column table is unusable at 375px). */}
         <div className="space-y-3 md:hidden">

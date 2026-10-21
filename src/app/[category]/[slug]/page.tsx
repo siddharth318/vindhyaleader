@@ -5,11 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
 import AdSlot from "@/components/ads/AdSlot";
-import AdPopup from "@/components/ads/AdPopup";
-import { getActiveAdForSlot } from "@/lib/data/ads";
+import AdPopup, { type PopupAd } from "@/components/ads/AdPopup";
+import { getCarouselAdsForSlot } from "@/lib/data/ads";
 import { getArticleBySlug, getRelatedArticles } from "@/lib/data/articles";
 import { prisma } from "@/lib/prisma";
 import { cleanText, sanitizeArticleHtml } from "@/lib/sanitize";
+import { SITE_TIME_ZONE } from "@/lib/time";
 import { removeFirstImageByUrl } from "@/lib/article-images";
 import {
   DEFAULT_OG_IMAGE,
@@ -98,6 +99,7 @@ function formatDate(date: Date | null) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: SITE_TIME_ZONE,
   }).format(date);
 }
 
@@ -105,10 +107,14 @@ export default async function ArticlePage({ params }: Props) {
   const { category: categorySlug, slug } = await params;
   const article = await resolveArticle(categorySlug, slug);
 
-  const [related, popupAd] = await Promise.all([
+  const [related, popupDesktop, popupMobile] = await Promise.all([
     getRelatedArticles(article.categoryId, article.id, 4),
-    getActiveAdForSlot("ARTICLE_POPUP").catch(() => null),
+    getCarouselAdsForSlot("ARTICLE_POPUP", "DESKTOP").catch(() => []),
+    getCarouselAdsForSlot("ARTICLE_POPUP", "MOBILE").catch(() => []),
   ]);
+  // The popup picks one of these at random in the browser (see AdPopup).
+  const toPopup = (ads: typeof popupDesktop): PopupAd[] =>
+    ads.map((a) => ({ id: a.id, imageUrl: a.imageUrl!, linkUrl: a.linkUrl, name: a.name }));
   const url = `${siteUrl}/${article.category.slug}/${article.slug}`;
   // Prefer the region the article is actually filed under, then any other detected one.
   const places = detectRegions({
@@ -177,8 +183,8 @@ export default async function ArticlePage({ params }: Props) {
   return (
     <article className="mx-auto max-w-3xl px-4 py-6">
       <ViewTracker articleId={article.id} />
-      {popupAd?.codeType === "IMAGE" && popupAd.imageUrl && (
-        <AdPopup imageUrl={popupAd.imageUrl} linkUrl={popupAd.linkUrl} name={popupAd.name} />
+      {(popupDesktop.length > 0 || popupMobile.length > 0) && (
+        <AdPopup desktopAds={toPopup(popupDesktop)} mobileAds={toPopup(popupMobile)} />
       )}
       <script
         type="application/ld+json"
@@ -216,7 +222,7 @@ export default async function ArticlePage({ params }: Props) {
         )}
       </div>
 
-      <AdSlot slotKey="ARTICLE_TOP" className="mb-5" />
+      <AdSlot slotKey="ARTICLE_TOP" className="mb-5" adsOnly />
 
       {article.featuredImage && (
         <figure className="mb-5">
@@ -241,7 +247,7 @@ export default async function ArticlePage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: bodyForRender }}
       />
 
-      <AdSlot slotKey="ARTICLE_BOTTOM" className="my-6" />
+      <AdSlot slotKey="ARTICLE_BOTTOM" className="my-6" adsOnly />
 
       <div className="mb-6 flex flex-wrap items-center gap-3 border-y border-neutral-200 py-3 text-sm">
         <span className="font-semibold text-neutral-600">शेयर करें:</span>

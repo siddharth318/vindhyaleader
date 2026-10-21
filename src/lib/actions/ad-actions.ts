@@ -7,6 +7,7 @@ import { getSession, hasRole } from "@/lib/auth";
 import { processAndStoreImage } from "@/lib/media-ingest";
 import { fetchImageBuffer, measureImage } from "@/lib/ad-image";
 import { sizeError } from "@/lib/ad-sizes";
+import { capacityError } from "@/lib/ad-capacity";
 import type { AdDevice, AdCodeType } from "@prisma/client";
 
 const ALLOWED_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -16,6 +17,21 @@ async function requireSuperAdmin() {
   const session = await getSession();
   if (!hasRole(session, "SUPER_ADMIN")) redirect("/admin/login");
   return session!;
+}
+
+/** Hindi error if one more running ad with `device` would exceed the per-slot limit (see ad-capacity). */
+async function slotCapacityError(slotId: string, device: string, excludeId?: string) {
+  const now = new Date();
+  const running = await prisma.advertisement.findMany({
+    where: {
+      slotId,
+      active: true,
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+      OR: [{ endDate: null }, { endDate: { gte: now } }], // expired ads no longer take a place
+    },
+    select: { device: true, name: true },
+  });
+  return capacityError(device, running);
 }
 
 export async function createAdSlotAction(formData: FormData) {
@@ -43,6 +59,11 @@ export async function createAdvertisementAction(_prev: AdFormState, formData: Fo
   if (!slot) return { error: "चुना हुआ स्लॉट नहीं मिला।" };
 
   const device = String(formData.get("device") ?? "ALL") as AdDevice;
+  // Checked before any image is stored, so a refused ad leaves nothing behind.
+  if (formData.get("active") === "on") {
+    const full = await slotCapacityError(slotId, device);
+    if (full) return { error: full };
+  }
   let codeType = String(formData.get("codeType") ?? "IMAGE") as AdCodeType;
   let imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
   const file = formData.get("imageFile") as File | null;
@@ -110,6 +131,12 @@ export async function createAdvertisementAction(_prev: AdFormState, formData: Fo
 
 export async function toggleAdvertisementAction(id: string, active: boolean) {
   await requireSuperAdmin();
+  if (active) {
+    const ad = await prisma.advertisement.findUnique({ where: { id }, select: { slotId: true, device: true } });
+    const full = ad && (await slotCapacityError(ad.slotId, ad.device, id));
+    // Plain form post: hand the reason back to the ads page to show (redirect() throws, so nothing below runs).
+    if (full) redirect(`/admin/ads?error=${encodeURIComponent(full)}`);
+  }
   await prisma.advertisement.update({ where: { id }, data: { active } });
   revalidatePath("/admin/ads");
   revalidatePath("/");

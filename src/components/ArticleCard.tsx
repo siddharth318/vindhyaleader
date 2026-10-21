@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { categoryAccent } from "@/lib/categoryColors";
 import { cleanText } from "@/lib/sanitize";
+import { SITE_TIME_ZONE } from "@/lib/time";
 
 export type ArticleCardData = {
   slug: string;
@@ -22,6 +23,7 @@ function formatDate(date: Date | null) {
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: SITE_TIME_ZONE,
   }).format(date);
 }
 

@@ -47,6 +47,12 @@ body {
   animation: slogan-shimmer 5s ease-in-out infinite;
 }
 
+/* The tagline after it: white text with the same sweeping glint (soft gold, so it shows on white),
+   on the same 5s timing so both parts shimmer together. */
+.slogan-shimmer-white {
+  background-image: linear-gradient(100deg, #ffffff 0%, #ffffff 35%, #fde68a 50%, #ffffff 65%, #ffffff 100%);
+}
+
 @keyframes slogan-shimmer {
   0% {
     background-position: 160% 0;

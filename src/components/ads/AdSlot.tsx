@@ -1,8 +1,12 @@
-import { getActiveAdForSlot } from "@/lib/data/ads";
+import { getActiveAdForSlot, getCarouselAdsForSlot } from "@/lib/data/ads";
+import { recommendedSize } from "@/lib/ad-sizes";
 import type { AdDevice } from "@prisma/client";
 import StickyAdBar from "./StickyAdBar";
 import HouseAd from "./HouseAd";
 import AdCarousel from "./AdCarousel";
+
+const HOUSE_AD_MS = 1000; // our own "advertise here" ad
+const PAID_AD_MS = 3000; // each paid ad
 
 const MIN_HEIGHTS: Record<string, string> = {
   leaderboard: "min-h-[90px]",
@@ -29,45 +33,75 @@ export default async function AdSlot({
   label,
   className = "",
   withHouseAd = false,
+  adsOnly = false,
 }: {
   slotKey: string;
   device?: AdDevice;
   label?: string;
   className?: string;
   /**
-   * Carousel that rotates our "advertise here" house ad (1s) with the slot's image ad (3s).
-   * A slot may carry separate DESKTOP and MOBILE creatives (e.g. the header's wide strip vs
-   * its phone strip); otherwise both resolve to the same all-device ad. Falls back to the
-   * normal rendering when the slot has no image ad.
+   * Carousel: our "advertise here" house ad (1s), then each of the slot's image ads (3s each, up to
+   * MAX_ADS_PER_SLOT), on repeat. Desktop (≥1024px) and phones get their own list — a slot may carry
+   * DESKTOP/MOBILE creatives (e.g. the header's wide vs phone strip) as well as ALL-device ones.
+   * Falls back to the normal rendering when the slot has no image ad at all.
    */
   withHouseAd?: boolean;
+  /**
+   * Same carousel of the slot's image ads but WITHOUT our house ad (used inside articles). Renders
+   * nothing at all when the slot has no image ad.
+   */
+  adsOnly?: boolean;
 }) {
-  if (withHouseAd) {
-    const [desktopAd, mobileAd] = await Promise.all(
-      (["DESKTOP", "MOBILE"] as const).map((d) => getActiveAdForSlot(slotKey, d).catch(() => null))
+  if (withHouseAd || adsOnly) {
+    const [desktopAds, mobileAds] = await Promise.all(
+      (["DESKTOP", "MOBILE"] as const).map((v) => getCarouselAdsForSlot(slotKey, v).catch(() => []))
     );
-    const wide = desktopAd?.codeType === "IMAGE" && desktopAd.imageUrl ? desktopAd : null;
-    const narrow = mobileAd?.codeType === "IMAGE" && mobileAd.imageUrl ? mobileAd : null;
-    const linkAd = wide ?? narrow;
 
-    if (linkAd) return (
-      <div data-ad-slot={slotKey} className={`w-full ${className}`}>
-        {/* House ad flashes briefly, the paid creative gets the longer turn. No "विज्ञापन" label in this strip. */}
-        <AdCarousel durations={[1000, 3000]}>
-          <div className="flex w-full">
-            <HouseAd slotKey={slotKey} compact />
-          </div>
-          <a href={linkAd.linkUrl ?? "#"} target="_blank" rel="noopener noreferrer sponsored" className="relative block w-full">
-            <picture>
-              {wide && narrow && wide.imageUrl !== narrow.imageUrl && (
-                <source media="(min-width: 1024px)" srcSet={wide.imageUrl!} />
-              )}
-              <img src={(narrow ?? wide)!.imageUrl!} alt={linkAd.name} className="block h-auto w-full" />
-            </picture>
-          </a>
-        </AdCarousel>
-      </div>
-    );
+    if (desktopAds.length || mobileAds.length) {
+      const carousel = (ads: typeof desktopAds, view: "DESKTOP" | "MOBILE") => {
+        // The slot's required size (ad-sizes) reserves the right height before a lazy image loads,
+        // so the strip doesn't jump when it does. Creatives are validated to this aspect ratio.
+        const size = recommendedSize(slotKey, view);
+        return (
+          // No "विज्ञापन" label in these strips; the house ad flashes briefly, paid ads get the longer turn.
+          <AdCarousel durations={[...(adsOnly ? [] : [HOUSE_AD_MS]), ...ads.map(() => PAID_AD_MS)]}>
+            {!adsOnly && (
+              <div className="flex w-full">
+                <HouseAd slotKey={slotKey} compact />
+              </div>
+            )}
+            {ads.map((ad) => (
+              <a key={ad.id} href={ad.linkUrl ?? "#"} target="_blank" rel="noopener noreferrer sponsored" className="relative block w-full">
+                {/* lazy: the carousel for the other screen size is display:none, so its images never download */}
+                <img
+                  src={ad.imageUrl!}
+                  alt={ad.name}
+                  loading="lazy"
+                  width={size?.w}
+                  height={size?.h}
+                  className="block h-auto w-full"
+                />
+              </a>
+            ))}
+          </AdCarousel>
+        );
+      };
+      const sameForBoth = desktopAds.map((a) => a.id).join() === mobileAds.map((a) => a.id).join();
+
+      return (
+        <div data-ad-slot={slotKey} className={`w-full ${className}`}>
+          {sameForBoth ? (
+            carousel(desktopAds, "DESKTOP")
+          ) : (
+            <>
+              <div className="hidden lg:block">{carousel(desktopAds, "DESKTOP")}</div>
+              <div className="lg:hidden">{carousel(mobileAds, "MOBILE")}</div>
+            </>
+          )}
+        </div>
+      );
+    }
+    if (adsOnly) return null;
   }
 
   const ad = await getActiveAdForSlot(slotKey, device).catch(() => null);
