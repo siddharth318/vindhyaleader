@@ -54,6 +54,11 @@ export default async function Footer() {
           <h5 className="mb-2 font-bold text-white">महत्वपूर्ण लिंक</h5>
           <ul className="space-y-1">
             <li>
+              <Link href="/about-us" className="hover:text-white">
+                About Us
+              </Link>
+            </li>
+            <li>
               <Link href="/contact-us" className="hover:text-white">
                 Contact Us
               </Link>

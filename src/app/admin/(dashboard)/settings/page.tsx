@@ -1,7 +1,7 @@
 import { getSettings } from "@/lib/data/settings";
 import { updateSettingsAction } from "@/lib/actions/settings-actions";
 import SubmitButton from "@/components/admin/SubmitButton";
-import { DEFAULT_ADSENSE_CLIENT } from "@/lib/adsense";
+import { DEFAULT_ADSENSE_CLIENT, isValidAdSlot } from "@/lib/adsense";
 
 export const metadata = { title: "सेटिंग्स" };
 
@@ -37,8 +37,16 @@ export default async function SettingsPage() {
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">AdSense In-article ad unit ID (data-ad-slot)</label>
-          <input name="adsense_inarticle_slot" defaultValue={settings.adsense_inarticle_slot ?? ""} placeholder="1234567890" inputMode="numeric" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-          <p className="mt-1 text-xs text-neutral-500">AdSense → Ads → By ad unit → In-article से बनाएँ। यह भरने पर खबरों के पैराग्राफ़ के बीच Google विज्ञापन दिखेंगे।</p>
+          <input name="adsense_inarticle_slot" defaultValue={settings.adsense_inarticle_slot ?? ""} placeholder='1234567890 — या पूरा <ins class="adsbygoogle" …> कोड पेस्ट करें' className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          <p className="mt-1 text-xs text-neutral-500">AdSense → Ads → By ad unit → In-article से बनाएँ और उसका 10 अंकों का data-ad-slot नंबर (या पूरा कोड) यहाँ डालें। Publisher ID (ca-pub-…) यहाँ नहीं डालें।</p>
+          {settings.adsense_inarticle_slot && !isValidAdSlot(settings.adsense_inarticle_slot) && (
+            <p className="mt-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700">
+              ⚠ &quot;{settings.adsense_inarticle_slot}&quot; सही Ad unit ID नहीं है (10 अंक होने चाहिए) — इन-आर्टिकल Google विज्ञापन अभी बंद हैं।
+            </p>
+          )}
+          {isValidAdSlot(settings.adsense_inarticle_slot) && (
+            <p className="mt-1 text-xs font-semibold text-green-700">✓ खबरों के बीच Google विज्ञापन चालू हैं।</p>
+          )}
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Google Search Console verification</label>

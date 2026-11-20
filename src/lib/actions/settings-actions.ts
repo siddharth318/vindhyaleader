@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getSession, hasRole } from "@/lib/auth";
 import { setSetting } from "@/lib/data/settings";
+import { parseAdSlotInput } from "@/lib/adsense";
 
 /**
  * Accepts either the bare verification token or the whole
@@ -22,7 +23,7 @@ export async function updateSettingsAction(formData: FormData) {
     ["ga4_id", String(formData.get("ga4_id") ?? "")],
     ["gtm_id", String(formData.get("gtm_id") ?? "")],
     ["adsense_client_id", String(formData.get("adsense_client_id") ?? "").trim()],
-    ["adsense_inarticle_slot", String(formData.get("adsense_inarticle_slot") ?? "").replace(/\D/g, "")],
+    ["adsense_inarticle_slot", parseAdSlotInput(String(formData.get("adsense_inarticle_slot") ?? ""))],
     ["breaking_ticker_enabled", formData.get("breaking_ticker_enabled") === "on" ? "1" : "0"],
     ["contact_phone", String(formData.get("contact_phone") ?? "")],
     ["contact_email", String(formData.get("contact_email") ?? "")],

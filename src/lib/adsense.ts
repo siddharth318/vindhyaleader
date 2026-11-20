@@ -10,11 +10,25 @@ export type AdSenseConfig = {
   inArticleSlot: string | null;
 };
 
+/** AdSense ad unit IDs ("data-ad-slot") are always 10 digits. */
+export const isValidAdSlot = (slot: string | null | undefined): slot is string => !!slot && /^\d{10}$/.test(slot);
+
+/**
+ * Pulls the ad unit ID out of whatever the admin pasted: the bare number, or the whole
+ * <ins class="adsbygoogle" … data-ad-slot="1234567890"> snippet AdSense shows.
+ */
+export function parseAdSlotInput(raw: string): string {
+  const fromSnippet = raw.match(/data-ad-slot\s*=\s*["']?(\d+)/i)?.[1];
+  return fromSnippet ?? raw.replace(/\D/g, "");
+}
+
 export async function getAdSenseConfig(): Promise<AdSenseConfig> {
   const s = await getSettings(["adsense_client_id", "adsense_inarticle_slot"]).catch(
     () => ({}) as Record<string, string | null>
   );
   const raw = s.adsense_client_id?.trim();
   const client = raw?.toLowerCase() === "off" ? null : raw || DEFAULT_ADSENSE_CLIENT;
-  return { client, inArticleSlot: s.adsense_inarticle_slot?.trim() || null };
+  // An invalid ID (e.g. the publisher ID pasted by mistake) would only produce broken ad requests.
+  const slot = s.adsense_inarticle_slot?.trim();
+  return { client, inArticleSlot: isValidAdSlot(slot) ? slot : null };
 }
