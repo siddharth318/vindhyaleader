@@ -47,7 +47,7 @@ export const AD_SLOT_SPECS: Record<string, AdSlotSpec> = {
   ARTICLE_BOTTOM: STRIP_SLOT,
   SIDEBAR_TOP: BIG_SLOT,
   ARTICLE_POPUP: {
-    where: "खबर खोलने के 5 सेकंड बाद पॉप-अप",
+    where: "खबर पूरी पढ़ लेने पर पॉप-अप (कम से कम 15 सेकंड बाद, हर विज़िट में एक बार)",
     sizes: { ALL: BIG },
     note: "पॉप-अप में अधिकतम 420px चौड़ाई पर दिखता है।",
   },

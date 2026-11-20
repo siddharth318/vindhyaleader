@@ -21,7 +21,8 @@ export async function updateSettingsAction(formData: FormData) {
   const entries: [string, string][] = [
     ["ga4_id", String(formData.get("ga4_id") ?? "")],
     ["gtm_id", String(formData.get("gtm_id") ?? "")],
-    ["adsense_client_id", String(formData.get("adsense_client_id") ?? "")],
+    ["adsense_client_id", String(formData.get("adsense_client_id") ?? "").trim()],
+    ["adsense_inarticle_slot", String(formData.get("adsense_inarticle_slot") ?? "").replace(/\D/g, "")],
     ["breaking_ticker_enabled", formData.get("breaking_ticker_enabled") === "on" ? "1" : "0"],
     ["contact_phone", String(formData.get("contact_phone") ?? "")],
     ["contact_email", String(formData.get("contact_email") ?? "")],
@@ -34,4 +35,6 @@ export async function updateSettingsAction(formData: FormData) {
   }
 
   revalidatePath("/admin/settings");
+  // AdSense / analytics IDs are read by the public layout and article pages.
+  revalidatePath("/", "layout");
 }

@@ -4,30 +4,72 @@ import { useEffect, useState } from "react";
 
 export type PopupAd = { id: string; imageUrl: string; linkUrl: string | null; name: string };
 
+/** Element marking the end of the story text; the popup waits until the reader gets there. */
+export const POPUP_TRIGGER_ID = "article-end";
+const SEEN_KEY = "vl_popup_seen";
+
 /**
- * Interstitial ad shown over an article after the reader has been on it for `delayMs`.
- * One ad is picked at random from the slot's active ads (up to 3) — in the browser, per visit,
- * because the article page itself is cached and shared between readers. Desktop (≥1024px) and
- * phones pick from their own list. Stays until closed: ✕ button, a click on the backdrop, or Esc.
+ * Popup ad over an article, timed to stay within Google's Better Ads Standards (which AdSense
+ * sites are held to): it never interrupts reading. It appears only at a natural break,
+ *  - once the reader has scrolled to the end of the story text (#article-end), and
+ *  - has been on the page at least `minDelayMs`,
+ * and at most once per browser session, so readers moving between stories aren't hit again.
+ * Closes with the ✕ button, a click on the backdrop, or Esc.
+ *
+ * One ad is picked at random from the slot's active ads (up to 3) in the browser, because the
+ * article page itself is cached and shared between readers. Desktop (≥1024px) and phones pick
+ * from their own list.
  */
 export default function AdPopup({
   desktopAds,
   mobileAds,
-  delayMs = 5000,
+  minDelayMs = 15000,
 }: {
   desktopAds: PopupAd[];
   mobileAds: PopupAd[];
-  delayMs?: number;
+  minDelayMs?: number;
 }) {
   const [ad, setAd] = useState<PopupAd | null>(null);
 
   useEffect(() => {
-    const id = setTimeout(() => {
+    try {
+      if (sessionStorage.getItem(SEEN_KEY)) return;
+    } catch {
+      // storage blocked (private mode etc.) — fall through, still gated on reading to the end
+    }
+    const end = document.getElementById(POPUP_TRIGGER_ID);
+    if (!end) return;
+
+    let timeUp = false;
+    let reachedEnd = false;
+    const show = () => {
+      if (!timeUp || !reachedEnd) return;
+      cleanup();
       const list = window.matchMedia("(min-width: 1024px)").matches ? desktopAds : mobileAds;
-      if (list.length) setAd(list[Math.floor(Math.random() * list.length)]);
-    }, delayMs);
-    return () => clearTimeout(id);
-  }, [delayMs, desktopAds, mobileAds]);
+      if (!list.length) return;
+      try {
+        sessionStorage.setItem(SEEN_KEY, "1");
+      } catch {}
+      setAd(list[Math.floor(Math.random() * list.length)]);
+    };
+
+    const timer = setTimeout(() => {
+      timeUp = true;
+      show();
+    }, minDelayMs);
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        reachedEnd = true;
+        show();
+      }
+    });
+    observer.observe(end);
+    function cleanup() {
+      clearTimeout(timer);
+      observer.disconnect();
+    }
+    return cleanup;
+  }, [minDelayMs, desktopAds, mobileAds]);
 
   useEffect(() => {
     if (!ad) return;

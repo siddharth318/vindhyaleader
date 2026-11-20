@@ -1,6 +1,7 @@
 import { getSettings } from "@/lib/data/settings";
 import { updateSettingsAction } from "@/lib/actions/settings-actions";
 import SubmitButton from "@/components/admin/SubmitButton";
+import { DEFAULT_ADSENSE_CLIENT } from "@/lib/adsense";
 
 export const metadata = { title: "सेटिंग्स" };
 
@@ -9,6 +10,7 @@ export default async function SettingsPage() {
     "ga4_id",
     "gtm_id",
     "adsense_client_id",
+    "adsense_inarticle_slot",
     "breaking_ticker_enabled",
     "contact_phone",
     "contact_email",
@@ -30,7 +32,13 @@ export default async function SettingsPage() {
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Google AdSense Client ID</label>
-          <input name="adsense_client_id" defaultValue={settings.adsense_client_id ?? ""} placeholder="ca-pub-XXXXXXXXXXXXXXXX" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          <input name="adsense_client_id" defaultValue={settings.adsense_client_id ?? ""} placeholder={DEFAULT_ADSENSE_CLIENT} className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          <p className="mt-1 text-xs text-neutral-500">खाली छोड़ें तो {DEFAULT_ADSENSE_CLIENT} उपयोग होगा। AdSense बंद करने के लिए &quot;off&quot; लिखें।</p>
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-neutral-700">AdSense In-article ad unit ID (data-ad-slot)</label>
+          <input name="adsense_inarticle_slot" defaultValue={settings.adsense_inarticle_slot ?? ""} placeholder="1234567890" inputMode="numeric" className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          <p className="mt-1 text-xs text-neutral-500">AdSense → Ads → By ad unit → In-article से बनाएँ। यह भरने पर खबरों के पैराग्राफ़ के बीच Google विज्ञापन दिखेंगे।</p>
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Google Search Console verification</label>

@@ -1,11 +1,14 @@
-import { cache } from "react";
+import { cache, Fragment } from "react";
 import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
 import AdSlot from "@/components/ads/AdSlot";
-import AdPopup, { type PopupAd } from "@/components/ads/AdPopup";
+import AdPopup, { POPUP_TRIGGER_ID, type PopupAd } from "@/components/ads/AdPopup";
+import AdSenseUnit from "@/components/ads/AdSenseUnit";
+import { getAdSenseConfig } from "@/lib/adsense";
+import { splitForInArticleAds } from "@/lib/article-ads";
 import { getCarouselAdsForSlot } from "@/lib/data/ads";
 import { getArticleBySlug, getRelatedArticles } from "@/lib/data/articles";
 import { prisma } from "@/lib/prisma";
@@ -107,10 +110,11 @@ export default async function ArticlePage({ params }: Props) {
   const { category: categorySlug, slug } = await params;
   const article = await resolveArticle(categorySlug, slug);
 
-  const [related, popupDesktop, popupMobile] = await Promise.all([
+  const [related, popupDesktop, popupMobile, adsense] = await Promise.all([
     getRelatedArticles(article.categoryId, article.id, 4),
     getCarouselAdsForSlot("ARTICLE_POPUP", "DESKTOP").catch(() => []),
     getCarouselAdsForSlot("ARTICLE_POPUP", "MOBILE").catch(() => []),
+    getAdSenseConfig(),
   ]);
   // The popup picks one of these at random in the browser (see AdPopup).
   const toPopup = (ads: typeof popupDesktop): PopupAd[] =>
@@ -179,6 +183,11 @@ export default async function ArticlePage({ params }: Props) {
   if (article.featuredImage) {
     bodyForRender = removeFirstImageByUrl(bodyForRender, article.featuredImage.url);
   }
+  // Google AdSense in-article units go between the body's paragraphs (see article-ads).
+  const inArticleAd = adsense.client && adsense.inArticleSlot
+    ? { client: adsense.client, slot: adsense.inArticleSlot }
+    : null;
+  const bodyChunks = inArticleAd ? splitForInArticleAds(bodyForRender) : [bodyForRender];
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-6">
@@ -242,10 +251,19 @@ export default async function ArticlePage({ params }: Props) {
         </figure>
       )}
 
-      <div
-        className="article-body prose prose-neutral max-w-none prose-headings:font-bold prose-a:text-red-700"
-        dangerouslySetInnerHTML={{ __html: bodyForRender }}
-      />
+      <div className="article-body prose prose-neutral max-w-none prose-headings:font-bold prose-a:text-red-700">
+        {bodyChunks.map((chunk, i) => (
+          <Fragment key={i}>
+            {/* display:contents keeps the chunks out of the layout, so prose spacing is unchanged */}
+            <div className="contents" dangerouslySetInnerHTML={{ __html: chunk }} />
+            {inArticleAd && i < bodyChunks.length - 1 && <AdSenseUnit {...inArticleAd} />}
+          </Fragment>
+        ))}
+      </div>
+      {/* Story too short for an ad inside it: one right after the text instead. */}
+      {inArticleAd && bodyChunks.length === 1 && <AdSenseUnit {...inArticleAd} />}
+      {/* The popup ad waits until the reader reaches this point (end of the story). */}
+      <div id={POPUP_TRIGGER_ID} aria-hidden="true" />
 
       <AdSlot slotKey="ARTICLE_BOTTOM" className="my-6" adsOnly />
 

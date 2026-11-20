@@ -6,6 +6,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import AdSlot from "@/components/ads/AdSlot";
 import { getSettings } from "@/lib/data/settings";
+import { getAdSenseConfig } from "@/lib/adsense";
 import {
   DEFAULT_OG_IMAGE,
   HOME_DESCRIPTION,
@@ -80,10 +81,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const { ga4_id: ga4Id, gtm_id: gtmId } = await getSettings(["ga4_id", "gtm_id"]).catch(() => ({
-    ga4_id: null,
-    gtm_id: null,
-  }));
+  const [{ ga4_id: ga4Id, gtm_id: gtmId }, adsense] = await Promise.all([
+    getSettings(["ga4_id", "gtm_id"]).catch(() => ({ ga4_id: null, gtm_id: null })),
+    getAdSenseConfig(),
+  ]);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -112,6 +113,15 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${notoDevanagari.variable} ${hind.variable} ${baloo.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        {adsense.client && (
+          // Plain async <script> (React hoists it into <head>) rather than next/script, whose
+          // data-nscript attribute AdSense warns about. Also lets AdSense verify the site.
+          <script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsense.client}`}
+            crossOrigin="anonymous"
+          />
+        )}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

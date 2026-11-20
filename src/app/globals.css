@@ -105,6 +105,18 @@ body {
 .article-body iframe {
   max-width: 100%;
 }
+/* The body is split into display:contents chunks around in-article ads; keep prose's
+   "no margin on the first/last element" behaviour working through those wrappers. */
+.article-body > .contents:first-child > :first-child {
+  margin-top: 0;
+}
+.article-body > .contents:last-child > :last-child {
+  margin-bottom: 0;
+}
+/* Google AdSense: hide the whole block (label included) when Google has no ad to fill it. */
+.adsense-unit:has(ins.adsbygoogle[data-ad-status="unfilled"]) {
+  display: none;
+}
 
 /* Article interstitial ad: fade the backdrop in, pop the card up. */
 .ad-popup-backdrop {
